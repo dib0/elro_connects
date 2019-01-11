@@ -1,4 +1,4 @@
-# This calss is reversed engineered and translated to python
+# This class is reversed engineered and translated to python
 # based on the CoderUtils class in the ELRO Android app
 
 class coder_utils:
@@ -8,6 +8,10 @@ class coder_utils:
             if len(input) != 32:
                 return ''
             
-            name = bytearray.fromhex(input).decode('gbk')
+            byt = bytearray.fromhex(input)
+            name = "".join(map(chr, byt))
+            name = name.replace("@", "").replace("$", "")
         except:
             return ''
+        
+        return name
