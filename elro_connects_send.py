@@ -3,25 +3,82 @@ from threading import Thread
 from time import sleep
 from elro_const import const
 from elro_coder_util import coder_utils
+from elro_device import device
 
 MSG_ID = 0
 SOCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+DEVICES = []
+
+
+def get_device(id):
+    global DEVICES
+
+    for dev in DEVICES:
+        if dev.id == id:
+            return dev
+    
+    dev = device()
+    dev.id = id
+    DEVICES.append(dev)
+    return dev
+
 
 def handle_command(data):
-    if data["data"]["cmdId"] == 19:
+    global DEVICES
+
+    if data["data"]["cmdId"] == const.DEVICE_STATUS_UPDATE:
+        if data["data"]["device_name"] == "STATUES":
+            return
+
+        # set device ID
+        d_id = data["data"]["device_ID"]
+        dev = get_device(d_id)
+        dev.device_type = data["data"]["device_name"]
+
+        # set battery status
+        batt = int(data["data"]["device_status"][2:4], 16)
+        dev.battery_level = batt
+
+        dev.device_state = "Unknown"
         if data["data"]["device_name"] == "0101": # Door/window sensor opened/closed
             if data["data"]["device_status"][4:-2] == "55":
-                print("Door/window id " + str(data["data"]["device_ID"]) + " open!")
+                debug_output("Door/window id " + str(d_id) + " open!")
+                dev.device_state = "Open"
             elif data["data"]["device_status"][4:-2] == "AA":
-                print("Door/window id " + str(data["data"]["device_ID"]) + " closed!")
-    elif data["data"]["cmdId"] == 25:
-        print("ALARM!!")
+                debug_output("Door/window id " + str(d_id) + " closed!")
+                dev.device_state = "Closed"
+        else: # Other sensors
+            if data["data"]["device_status"][4:-2] == "BB":
+                dev.device_state = "Alarm"
+            elif data["data"]["device_status"][4:-2] == "AA":
+                dev.device_state = "Normal"
+    
+    elif data["data"]["cmdId"] == const.DEVICE_ALARM_TRIGGER:
+        d_id = int(data["data"]["answer_content"][6:10], 16)
+        dev = get_device(d_id)
+        debug_output("ALARM!! Device_id " + str(d_id) + "(" + dev.name + ")")
+    
+    elif data["data"]["cmdId"] == const.DEVICE_NAME_REPLY:
+        answer = data["data"]["answer_content"]
+        if answer == "NAME_OVER":
+            return
+
+        d_id = int(answer[0:4], 16)
+        name_val = coder_utils.getStringFromAscii(answer[4:])
+
+        dev = get_device(d_id)
+        dev.name = name_val
 
 
 def send_data(data):
     global SOCK
 
     SOCK.sendto(bytes(data, "utf-8"), (const.SERVER_IP, const.SERVER_PORT))
+
+
+def debug_output(txt):
+    if const.DEBUG_SCRIPT:
+        print(time.strftime("%Y-%m-%d %H:%M") + ' ' + txt)
 
 
 def receive_data():
@@ -36,8 +93,7 @@ def receive_data():
         if reply.endswith('\\r'):
             reply = reply[:-2]
 
-        if const.DEBUG_SCRIPT:
-            print(time.strftime("%Y-%m-%d %H:%M") + ' Received data: ' + reply)
+        debug_output('Received data: ' + reply)
 
         if reply.startswith('{') and reply != "{ST_answer_OK}":
             msg = json.loads(reply)
@@ -77,9 +133,17 @@ def sync_devices():
     send_data(msg)
 
 
-def test_device_alarm(deviceid):
-    #payload = "17000000" # For Firealarm
+def get_device_names():
+    msg = construct_message('{"cmdId":' + str(const.GET_DEVICE_NAME) + ',"device_ID":0}')
+    send_data(msg)
+
+
+def test_device_alarm(dev):
+    debug_output("Testing alarm for " + dev.name)
     payload = "BB000000"
+    if dev.device_type == device_type.FIRE_ALARM:
+        payload = "17000000"
+
     msg = construct_message('{"cmdId":' + str(const.EQUIPMENT_CONTROL) + ',"device_ID":' + str(deviceid) + ',"device_status":"' + payload + '"}')
     send_data(msg)
 
@@ -87,11 +151,10 @@ def test_device_alarm(deviceid):
 # Main script loop
 start_connection()
 sync_scenes(0) # 0 is the first/default group
-#test_device_alarm(2)
+get_device_names()
 
 # Main loop, keep updating every 30 seconds. Keeps 'connection' alive in order 
 # to receive alarms/events
 while True:
+    sleep(30) # sleep first to handle the sync scenes and device names
     sync_devices()
-    sleep(30)
-
