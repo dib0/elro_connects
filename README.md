@@ -4,3 +4,5 @@ The ELRO Connects uses a propriety protocol on the local network over UDP. This 
 The ERLO connects system allows you to connect fire alarms, heat alarms, CO alarms, water alarms and door/window sensors through a hub. The app uses an internet connection, but on the local network it is possible to communicate with the hub through a propriety UDP protocol.
 
 This is the initial setup, still working on expanding the implementation. Feel free to test and or add code.
+
+The ELRO connects hub allows only one 'connection' at a time. So running this script wil discontinue sending data to the app and vice versa.
