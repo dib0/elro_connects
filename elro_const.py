@@ -1,8 +1,7 @@
 class const:
     DEBUG_SCRIPT = True
     # Global ELRO Connects variables
-    DEVICE_ID = 'ST_aaaaaaaaaaaa' # ID of the ELRO Connects Hub. Todo: need to find an easy way to 
-                                  # find this device_id
+    DEVICE_ID = 'ST_aaaaaaaaaaaa' # ID of the ELRO Connects Hub. This starts with ST_ and then is the (lowercase) macaddress of the WiFi adapter of the Hub
     CTRL_KEY = '0'  #Seems not to be used for UDP communication
     APP_ID = '0' #(app uses android_id here) Seems not to be used for UDP communication
 
