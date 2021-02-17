@@ -1,6 +1,0 @@
-class device_type:
-    CO_ALARM: "0000"
-    WATER_ALARM: "0004"
-    HEAT_ALARM: "0003"
-    FIRE_ALARM: "0005"
-    DOOR_WINDOW_SENSOR: "0101"

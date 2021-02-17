@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+import logging
+import argparse
+
+import trio
+
+from elro.hub import Hub
+
+
+async def main(hostname, id):
+    hub = Hub(hostname, 1025, id)
+    async with trio.open_nursery() as nursery:
+        nursery.start_soon(hub.sender_task, name="hub_sender")
+        nursery.start_soon(hub.receiver_task, name="hub_receiver")
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", "--hostname", help="The hostname or ip of the K1 connector.")
+    parser.add_argument("-i", "--id", help="The ID of the K1 connector (format is ST_xxxxxxxxxxxx).")
+
+    args = parser.parse_args()
+
+    trio.run(main, args.hostname, args.id)
+
+
+
+

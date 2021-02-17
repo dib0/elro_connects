@@ -20,9 +20,11 @@ class Device:
 
 
 class DeviceDict(dict):
-    def __init__(self, factory, seq=None, **kwargs):
+    def __init__(self, seq=None, **kwargs):
+        if seq is None:
+            seq = []
         super().__init__(seq, **kwargs)
-        self.factory = factory
 
     def __missing__(self, key):
-        self[key] = self.factory(key)
+        self[key] = Device(key, "", 100, "", None)
+        return self[key]
