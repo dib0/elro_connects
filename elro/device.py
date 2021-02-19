@@ -54,5 +54,5 @@ class DeviceDict(dict):
         super().__init__(seq, **kwargs)
 
     def __missing__(self, key):
-        self[key] = Device(key, "", 100, "", None, trio.Event())
+        self[key] = Device(key, "", 100, "", None)
         return self[key]

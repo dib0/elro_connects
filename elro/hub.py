@@ -96,6 +96,7 @@ class Hub:
 
             # set device ID
             d_id = data["data"]["device_ID"]
+            print(self.devices)
             dev = self.devices[d_id]
             dev.device_type = data["data"]["device_name"]
 
