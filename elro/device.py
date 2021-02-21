@@ -1,4 +1,7 @@
 from enum import Enum
+from abc import ABC, abstractmethod
+import logging
+
 import trio
 
 
@@ -10,12 +13,12 @@ class DeviceType(Enum):
     DOOR_WINDOW_SENSOR = "0101"
 
 
-class Device:
-    def __init__(self, id, name, battery_level, device_state, device_type):
+class Device(ABC):
+    def __init__(self, id, device_type):
         self.id = id
-        self.name = name
-        self._battery_level = battery_level
-        self._device_state = device_state
+        self.name = ""
+        self._battery_level = -1
+        self._device_state = ""
         self.device_type = device_type
         self.updated = trio.Event()
         self.alarm = trio.Event()
@@ -46,13 +49,52 @@ class Device:
         self.alarm.set()
         self.alarm = trio.Event()
 
+    def update(self, data):
+        self.device_type = data["data"]["device_name"]
 
-class DeviceDict(dict):
-    def __init__(self, seq=None, **kwargs):
-        if seq is None:
-            seq = []
-        super().__init__(seq, **kwargs)
+        # set battery status
+        batt = int(data["data"]["device_status"][2:4], 16)
+        self.battery_level = batt
 
-    def __missing__(self, key):
-        self[key] = Device(key, "", 100, "", None)
-        return self[key]
+        self.device_state = "Unknown"
+        self.update_specifics(data)
+        self._send_update_event()
+
+    @abstractmethod
+    def update_specifics(self, data):
+        pass
+
+
+class WindowSensor(Device):
+    def __init__(self, id):
+        super().__init__(id, "0101")
+
+    def update_specifics(self, data):
+        if data["data"]["device_name"] != DeviceType.DOOR_WINDOW_SENSOR.value:
+            AttributeError(f"Tried to update a window sensor to type "
+                           f"{DeviceType(data['data']['device_name'])}")
+
+        if data["data"]["device_status"][4:-2] == "55":
+            logging.debug("Door/window id " + str(self.id) + " open!")
+            self.device_state = "Open"
+        elif data["data"]["device_status"][4:-2] == "AA":
+            logging.debug("Door/window id " + str(self.id) + " closed!")
+            self.device_state = "Closed"
+
+
+class AlarmSensor(Device):
+    def __init__(self, id, device_type):
+        super().__init__(id, device_type)
+
+    def update_specifics(self, data):
+        if data["data"]["device_status"][4:-2] == "BB":
+            self.device_state = "Alarm"
+        elif data["data"]["device_status"][4:-2] == "AA":
+            self.device_state = "Normal"
+
+
+def create_device_from_data(data):
+    if data["data"]["device_name"] == DeviceType.DOOR_WINDOW_SENSOR.value:
+        return WindowSensor(data["data"]["device_ID"])
+    else:
+        return AlarmSensor(data["data"]["device_ID"], data["data"]["device_name"])

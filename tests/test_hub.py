@@ -10,6 +10,7 @@ async def hub():
     hub.sock.sendto = CoroutineMock()
     return hub
 
+
 @pytest.fixture
 def update_data():
     return {"data": {"cmdId": Command.DEVICE_STATUS_UPDATE.value,
@@ -108,7 +109,7 @@ async def test_can_update_another_sensor_to_alarm(hub):
     assert hub.devices["vader"].battery_level == 42
 
 
-async def test_can_update_another_sensor_to_alarm(hub):
+async def test_can_update_another_sensor_to_normal(hub):
     data = {"data": {"cmdId": Command.DEVICE_STATUS_UPDATE.value,
                      "device_name": "0004",
                      "device_ID": "vader",

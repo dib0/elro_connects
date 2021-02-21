@@ -6,7 +6,7 @@ from valideer import accepts
 import valideer
 
 from elro.command import Command
-from elro.device import DeviceDict
+from elro.device import create_device_from_data
 from elro.utils import get_string_from_ascii
 
 
@@ -22,7 +22,7 @@ class Hub:
         self.port = port
         self.id = device_id
 
-        self.devices = DeviceDict()
+        self.devices = {}
         self.connected = False
 
         self.msg_id = 0
@@ -96,31 +96,18 @@ class Hub:
 
             # set device ID
             d_id = data["data"]["device_ID"]
-            print(self.devices)
-            dev = self.devices[d_id]
-            dev.device_type = data["data"]["device_name"]
+            try:
+                dev = self.devices[d_id]
+            except KeyError:
+                dev = create_device_from_data(data)
+                self.devices[d_id] = dev
 
-            # set battery status
-            batt = int(data["data"]["device_status"][2:4], 16)
-            dev.battery_level = batt
-
-            dev.device_state = "Unknown"
-            if data["data"]["device_name"] == "0101":  # Door/window sensor opened/closed
-                if data["data"]["device_status"][4:-2] == "55":
-                    logging.debug("Door/window id " + str(d_id) + " open!")
-                    dev.device_state = "Open"
-                elif data["data"]["device_status"][4:-2] == "AA":
-                    logging.debug("Door/window id " + str(d_id) + " closed!")
-                    dev.device_state = "Closed"
-            else:  # Other sensors
-                if data["data"]["device_status"][4:-2] == "BB":
-                    dev.device_state = "Alarm"
-                elif data["data"]["device_status"][4:-2] == "AA":
-                    dev.device_state = "Normal"
+            dev.update(data)
 
         elif data["data"]["cmdId"] == Command.DEVICE_ALARM_TRIGGER.value:
             d_id = int(data["data"]["answer_content"][6:10], 16)
             dev = self.devices[d_id]
+            dev.send_alarm_event()
             logging.debug("ALARM!! Device_id " + str(d_id) + "(" + dev.name + ")")
 
         elif data["data"]["cmdId"] == Command.DEVICE_NAME_REPLY.value:
