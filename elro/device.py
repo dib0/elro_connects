@@ -1,6 +1,7 @@
 from enum import Enum
 from abc import ABC, abstractmethod
 import logging
+import json
 
 import trio
 
@@ -14,8 +15,8 @@ class DeviceType(Enum):
 
 
 class Device(ABC):
-    def __init__(self, id, device_type):
-        self.id = id
+    def __init__(self, device_id, device_type):
+        self.id = device_id
         self.name = ""
         self._battery_level = -1
         self._device_state = ""
@@ -64,10 +65,21 @@ class Device(ABC):
     def update_specifics(self, data):
         pass
 
+    def __str__(self):
+        return f"<{self.device_type}: {self.name} (id: {self.id})>"
+
+    @property
+    def json(self):
+        return json.dumps({"name": self.name,
+                           "id": self.id,
+                           "type": self.device_type,
+                           "state": self.device_state,
+                           "battery": self.battery_level})
+
 
 class WindowSensor(Device):
-    def __init__(self, id):
-        super().__init__(id, "0101")
+    def __init__(self, device_id):
+        super().__init__(device_id, "0101")
 
     def update_specifics(self, data):
         if data["data"]["device_name"] != DeviceType.DOOR_WINDOW_SENSOR.value:
@@ -83,8 +95,8 @@ class WindowSensor(Device):
 
 
 class AlarmSensor(Device):
-    def __init__(self, id, device_type):
-        super().__init__(id, device_type)
+    def __init__(self, device_id, device_type):
+        super().__init__(device_id, device_type)
 
     def update_specifics(self, data):
         if data["data"]["device_status"][4:-2] == "BB":

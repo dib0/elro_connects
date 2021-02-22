@@ -8,13 +8,14 @@ import valideer
 from elro.command import Command
 from elro.device import create_device_from_data
 from elro.utils import get_string_from_ascii
+from elro.validation import hostname, ip_address
 
 
 class Hub:
     APP_ID = '0'
     CTRL_KEY = '0'
 
-    @accepts(ip=valideer.Pattern("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"),
+    @accepts(ip=valideer.Pattern(f"^({ip_address})|({hostname})$"),
              port="integer",
              device_id=valideer.Pattern("^ST_([0-9A-Fa-f]{12})$"))
     def __init__(self, ip, port, device_id):
@@ -27,6 +28,8 @@ class Hub:
 
         self.msg_id = 0
         self.sock = trio.socket.socket(trio.socket.AF_INET, trio.socket.SOCK_DGRAM)
+
+        self.new_device = trio.Event()
 
     async def sender_task(self):
         await self.connect()
@@ -101,6 +104,8 @@ class Hub:
             except KeyError:
                 dev = create_device_from_data(data)
                 self.devices[d_id] = dev
+                self.new_device.set()
+                self.new_device = trio.Event()
 
             dev.update(data)
 
