@@ -47,12 +47,12 @@ class Hub:
         """
         await self.connect()
         await self.sync_scenes(0)
-        await self.get_device_names()
 
         # Main loop, keep updating every 30 seconds. Keeps 'connection' alive in order
         # to receive alarms/events
         while True:
             await self.sync_devices()
+            await self.get_device_names()
             await trio.sleep(30)  # sleep first to handle the sync scenes and device names
 
     async def receiver_task(self):
@@ -122,6 +122,20 @@ class Hub:
             # Send reply
             await self.send_data('APP_answer_OK')
 
+    def create_device(self, data):
+        """
+        Creates a new device in the device dict
+        :param data: The data to create the device from
+        :return: The device oobject
+        """
+        logging.info("Create device.")
+        dev = create_device_from_data(data)
+        d_id = data["data"]["device_ID"]
+        self.devices[d_id] = dev
+        self.new_device.set()
+        self.new_device = trio.Event()
+        return self.devices[d_id]
+
     async def handle_command(self, data):
         """
         Handles all commands from the K1
@@ -137,18 +151,18 @@ class Hub:
             try:
                 dev = self.devices[d_id]
             except KeyError:
-                logging.info("Create device.")
-                dev = create_device_from_data(data)
-                self.devices[d_id] = dev
-                self.new_device.set()
-                self.new_device = trio.Event()
+                dev = self.create_device(data)
+
             await trio.sleep(0)
 
             dev.update(data)
 
         elif data["data"]["cmdId"] == Command.DEVICE_ALARM_TRIGGER.value:
             d_id = int(data["data"]["answer_content"][6:10], 16)
-            dev = self.devices[d_id]
+            try:
+                dev = self.devices[d_id]
+            except KeyError:
+                dev = self.create_device(data)
             dev.send_alarm_event()
             logging.debug("ALARM!! Device_id " + str(d_id) + "(" + dev.name + ")")
 
@@ -160,7 +174,11 @@ class Hub:
             d_id = int(answer[0:4], 16)
             name_val = get_string_from_ascii(answer[4:])
 
-            dev = self.devices[d_id]
+            try:
+                dev = self.devices[d_id]
+            except KeyError:
+                dev = create_device_from_data(data)
+            await trio.sleep(0)
             dev.name = name_val
 
     async def sync_scenes(self, group_nr):

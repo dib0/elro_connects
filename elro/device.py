@@ -28,12 +28,25 @@ class Device(ABC):
         :param device_type: The device type
         """
         self.id = device_id
-        self.name = ""
+        self._name = ""
         self._battery_level = -1
         self._device_state = ""
         self.device_type = device_type
         self.updated = trio.Event()
         self.alarm = trio.Event()
+
+    @property
+    def name(self):
+        """
+        The name of the device
+        :return: The name
+        """
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+        self._send_update_event()
 
     @property
     def device_state(self):
