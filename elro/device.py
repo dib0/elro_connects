@@ -7,6 +7,9 @@ import trio
 
 
 class DeviceType(Enum):
+    """
+    The DeviceType defines which kind of Elro device this is
+    """
     CO_ALARM = "0000"
     WATER_ALARM = "0004"
     HEAT_ALARM = "0003"
@@ -15,7 +18,15 @@ class DeviceType(Enum):
 
 
 class Device(ABC):
+    """
+    A Device is an Elro device that is connected to the system
+    """
     def __init__(self, device_id, device_type):
+        """
+        Constructor
+        :param device_id: The device ID
+        :param device_type: The device type
+        """
         self.id = device_id
         self.name = ""
         self._battery_level = -1
@@ -26,6 +37,10 @@ class Device(ABC):
 
     @property
     def device_state(self):
+        """
+        The current state of the device as a string
+        :return: The device state
+        """
         return self._device_state
 
     @device_state.setter
@@ -35,6 +50,10 @@ class Device(ABC):
 
     @property
     def battery_level(self):
+        """
+        The current battery level of the device in percent.
+        :return: The battery level
+        """
         return self._battery_level
 
     @battery_level.setter
@@ -43,14 +62,24 @@ class Device(ABC):
         self._send_update_event()
 
     def _send_update_event(self):
+        """
+        Triggers the self.updated event
+        """
         self.updated.set()
         self.updated = trio.Event()
 
     def send_alarm_event(self):
+        """
+        Triggers the self.alarm event.
+        """
         self.alarm.set()
         self.alarm = trio.Event()
 
     def update(self, data):
+        """
+        Updates this device with the data received from the actual device
+        :param data: The data dict received from the actual device
+        """
         self.device_type = data["data"]["device_name"]
 
         # set battery status
@@ -63,6 +92,10 @@ class Device(ABC):
 
     @abstractmethod
     def update_specifics(self, data):
+        """
+        An abstract method that is called to update type specific things.
+        :param data: The data dict received from the actual device
+        """
         pass
 
     def __str__(self):
@@ -73,6 +106,10 @@ class Device(ABC):
 
     @property
     def json(self):
+        """
+        A json representation of the device.
+        :return: A str containing json.
+        """
         return json.dumps({"name": self.name,
                            "id": self.id,
                            "type": self.device_type,
@@ -81,10 +118,21 @@ class Device(ABC):
 
 
 class WindowSensor(Device):
+    """
+    A sensor that can detect open/close state of a window.
+    """
     def __init__(self, device_id):
+        """
+        Constructor
+        :param device_id: The device ID
+        """
         super().__init__(device_id, "0101")
 
     def update_specifics(self, data):
+        """
+        Updates the window "Open"/"Closed" state
+        :param data: The data dict received from the actual device
+        """
         if data["data"]["device_name"] != DeviceType.DOOR_WINDOW_SENSOR.value:
             AttributeError(f"Tried to update a window sensor to type "
                            f"{DeviceType(data['data']['device_name'])}")
@@ -98,10 +146,22 @@ class WindowSensor(Device):
 
 
 class AlarmSensor(Device):
+    """
+    A device that can ring an alarm (HeatAlarm, WaterAlarm, FireAlarm, COAlarm)
+    """
     def __init__(self, device_id, device_type):
+        """
+        Constructor
+        :param device_id: The device ID
+        :param device_type: The device type
+        """
         super().__init__(device_id, device_type)
 
     def update_specifics(self, data):
+        """
+        Updates the alarm state of the device.
+        :param data: The data dict received from the actual device
+        """
         if data["data"]["device_status"][4:-2] == "BB":
             self.device_state = "Alarm"
         elif data["data"]["device_status"][4:-2] == "AA":
@@ -109,6 +169,11 @@ class AlarmSensor(Device):
 
 
 def create_device_from_data(data):
+    """
+    Factory method to create a device from a data dict
+    :param data: The data dict received from the actual device
+    :return: A Device object
+    """
     if data["data"]["device_name"] == DeviceType.DOOR_WINDOW_SENSOR.value:
         return WindowSensor(data["data"]["device_ID"])
     else:

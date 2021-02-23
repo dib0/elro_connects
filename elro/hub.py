@@ -12,6 +12,9 @@ from elro.validation import hostname, ip_address
 
 
 class Hub:
+    """
+    A representation of the K1 Connector (its "Hub") of the Elro Connects system
+    """
     APP_ID = '0'
     CTRL_KEY = '0'
 
@@ -19,6 +22,12 @@ class Hub:
              port="integer",
              device_id=valideer.Pattern("^ST_([0-9A-Fa-f]{12})$"))
     def __init__(self, ip, port, device_id):
+        """
+        Constructor
+        :param ip: The ip of the K1
+        :param port: The port of the K1 (usually 1025)
+        :param device_id: The device id of the K1 (starts with ST_ followed by its MAC address without colons)
+        """
         self.ip = ip
         self.port = port
         self.id = device_id
@@ -32,6 +41,10 @@ class Hub:
         self.new_device = trio.Event()
 
     async def sender_task(self):
+        """
+        The main loop for sending keep alive messages asking for the current status to
+        the K1
+        """
         await self.connect()
         await self.sync_scenes(0)
         await self.get_device_names()
@@ -43,10 +56,16 @@ class Hub:
             await trio.sleep(30)  # sleep first to handle the sync scenes and device names
 
     async def receiver_task(self):
+        """
+        The main loop for receiving data from the K1
+        """
         while True:
             await self.receive_data()
 
     async def connect(self):
+        """
+        Connects with the K1
+        """
         print("Start connection with hub.")
         while not self.connected:
             await self.send_data('IOT_KEY?' + self.id)
@@ -56,6 +75,11 @@ class Hub:
         await self.send_data(msg)
 
     def construct_message(self, data):
+        """
+        Construct a valid message from data
+        :param data: A string containing data to be send to the K1
+        :return: A json message
+        """
         self.msg_id += 1
 
         result = '{"msgId":' + str(self.msg_id) + \
@@ -64,11 +88,18 @@ class Hub:
         return result
 
     async def send_data(self, data):
+        """
+        Sends data to the K1
+        :param data: The data to be send
+        """
         logging.info(f"Send data: {data}")
         await self.sock.sendto(bytes(data, "utf-8"),
                                (self.ip, self.port))
 
     async def receive_data(self):
+        """
+        Receives data from the K1
+        """
         data = await self.sock.recv(4096)
 
         reply = str(data)[2:-1]
@@ -92,6 +123,10 @@ class Hub:
             await self.send_data('APP_answer_OK')
 
     async def handle_command(self, data):
+        """
+        Handles all commands from the K1
+        :param data: The data with the commands
+        """
         logging.info(f"Handle command: {data}")
         if data["data"]["cmdId"] == Command.DEVICE_STATUS_UPDATE.value:
             if data["data"]["device_name"] == "STATUES":
@@ -129,16 +164,26 @@ class Hub:
             dev.name = name_val
 
     async def sync_scenes(self, group_nr):
+        """
+        Sends a sync scene command to the K1
+        :param group_nr: The scene group to sync
+        """
         msg = self.construct_message('{"cmdId":' + str(Command.SYN_SCENE.value) +
                                      ',"sence_group":' + str(group_nr) + ',"answer_content":"","scene_content":""}')
         logging.info(f"sync scenes, group {group_nr}")
         await self.send_data(msg)
 
     async def sync_devices(self):
+        """
+        Sends a sync devices command to the K1
+        """
         msg = self.construct_message('{"cmdId":' + str(Command.GET_ALL_EQUIPMENT_STATUS.value) + ',"device_status":""}')
         logging.info("sync devices")
         await self.send_data(msg)
 
     async def get_device_names(self):
+        """
+        Sends a get device names command to the K1
+        """
         msg = self.construct_message('{"cmdId":' + str(Command.GET_DEVICE_NAME.value) + ',"device_ID":0}')
         await self.send_data(msg)
