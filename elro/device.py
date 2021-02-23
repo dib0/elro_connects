@@ -68,6 +68,9 @@ class Device(ABC):
     def __str__(self):
         return f"<{self.device_type}: {self.name} (id: {self.id})>"
 
+    def __repr__(self):
+        return str(self)
+
     @property
     def json(self):
         return json.dumps({"name": self.name,

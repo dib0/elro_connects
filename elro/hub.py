@@ -15,7 +15,7 @@ class Hub:
     APP_ID = '0'
     CTRL_KEY = '0'
 
-    @accepts(ip=valideer.Pattern(f"^({ip_address})|({hostname})$"),
+    @accepts(ip=valideer.Pattern(f"^(mqtt://)?({ip_address})|({hostname})$"),
              port="integer",
              device_id=valideer.Pattern("^ST_([0-9A-Fa-f]{12})$"))
     def __init__(self, ip, port, device_id):
@@ -86,12 +86,12 @@ class Hub:
             msg = json.loads(reply)
             dat = msg["params"]
 
-            self.handle_command(dat)
+            await self.handle_command(dat)
 
             # Send reply
             await self.send_data('APP_answer_OK')
 
-    def handle_command(self, data):
+    async def handle_command(self, data):
         logging.info(f"Handle command: {data}")
         if data["data"]["cmdId"] == Command.DEVICE_STATUS_UPDATE.value:
             if data["data"]["device_name"] == "STATUES":
@@ -102,10 +102,12 @@ class Hub:
             try:
                 dev = self.devices[d_id]
             except KeyError:
+                logging.info("Create device.")
                 dev = create_device_from_data(data)
                 self.devices[d_id] = dev
                 self.new_device.set()
                 self.new_device = trio.Event()
+            await trio.sleep(0)
 
             dev.update(data)
 

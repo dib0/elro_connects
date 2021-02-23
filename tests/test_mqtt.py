@@ -11,6 +11,11 @@ def client():
     return client
 
 
+# @def pytest.fixture
+# def real_client():
+#     return elro.mqtt.MQTTPublisher("mqtt://test.mosquitto.org", "/elro_connects")
+#
+#
 @pytest.fixture
 def mock_device():
     device = AlarmSensor("42", DeviceType.DOOR_WINDOW_SENSOR.value)

@@ -68,14 +68,14 @@ async def test_recv_handles_answer_ok_response_correctly(hub):
 
 async def test_recv_handles_commands_correctly(hub):
     hub.sock.recv = CoroutineMock(return_value='  {"params":"fortytwo"} ')
-    hub.handle_command = MagicMock()
+    hub.handle_command = CoroutineMock()
     await hub.receive_data()
-    hub.handle_command.assert_called_with("fortytwo")
+    hub.handle_command.assert_awaited_with("fortytwo")
 
 
 async def test_update_on_new_device_adds_device(hub, update_data):
     size = len(hub.devices)
-    hub.handle_command(update_data)
+    await hub.handle_command(update_data)
     assert len(hub.devices) == size + 1
 
 
@@ -84,7 +84,7 @@ async def test_can_update_window_sensor_to_open(hub):
                      "device_name": "0101",
                      "device_ID": "vader",
                      "device_status": "  2A55  "}}
-    hub.handle_command(data)
+    await hub.handle_command(data)
     assert hub.devices["vader"].device_state == "Open"
     assert hub.devices["vader"].battery_level == 42
 
@@ -94,7 +94,7 @@ async def test_can_update_window_sensor_to_closed(hub):
                      "device_name": "0101",
                      "device_ID": "vader",
                      "device_status": "  2AAA  "}}
-    hub.handle_command(data)
+    await hub.handle_command(data)
     assert hub.devices["vader"].device_state == "Closed"
     assert hub.devices["vader"].battery_level == 42
 
@@ -104,7 +104,7 @@ async def test_can_update_another_sensor_to_alarm(hub):
                      "device_name": "0004",
                      "device_ID": "vader",
                      "device_status": "  2ABB  "}}
-    hub.handle_command(data)
+    await hub.handle_command(data)
     assert hub.devices["vader"].device_state == "Alarm"
     assert hub.devices["vader"].battery_level == 42
 
@@ -114,6 +114,6 @@ async def test_can_update_another_sensor_to_normal(hub):
                      "device_name": "0004",
                      "device_ID": "vader",
                      "device_status": "  2AAA  "}}
-    hub.handle_command(data)
+    await hub.handle_command(data)
     assert hub.devices["vader"].device_state == "Normal"
     assert hub.devices["vader"].battery_level == 42
