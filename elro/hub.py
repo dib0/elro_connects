@@ -52,8 +52,8 @@ class Hub:
         # to receive alarms/events
         while True:
             await self.sync_devices()
-            await self.get_device_names()
             await trio.sleep(30)  # sleep first to handle the sync scenes and device names
+            await self.get_device_names()
 
     async def receiver_task(self):
         """
@@ -177,7 +177,7 @@ class Hub:
             try:
                 dev = self.devices[d_id]
             except KeyError:
-                dev = create_device_from_data(data)
+                return
             await trio.sleep(0)
             dev.name = name_val
 

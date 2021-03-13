@@ -117,3 +117,10 @@ async def test_can_update_another_sensor_to_normal(hub):
     await hub.handle_command(data)
     assert hub.devices["vader"].device_state == "Normal"
     assert hub.devices["vader"].battery_level == 42
+
+
+async def test_does_not_crash_on_a_name_reply_on_unregistered_devices(hub):
+    data = {"data": {"cmdId": Command.DEVICE_NAME_REPLY,
+                     "answer_content": "00014040404040576f686e7a696d6d657224"}}
+    result = await hub.handle_command(data)
+    assert result is None
