@@ -14,9 +14,9 @@ def client():
 @pytest.fixture
 def mock_device():
     device = AlarmSensor("42", DeviceType.DOOR_WINDOW_SENSOR.value)
+    device.name = "yoda"
     device.alarm.wait = CoroutineMock()
     device.updated.wait = CoroutineMock()
-    device.name = "yoda"
     return device
 
 
