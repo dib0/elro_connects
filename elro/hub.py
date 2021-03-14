@@ -38,7 +38,7 @@ class Hub:
         self.msg_id = 0
         self.sock = trio.socket.socket(trio.socket.AF_INET, trio.socket.SOCK_DGRAM)
 
-        self.new_device = trio.Event()
+        self.new_device_send_ch, self.new_device_receive_ch = trio.open_memory_channel(0)
 
     async def sender_task(self):
         """
@@ -122,7 +122,7 @@ class Hub:
             # Send reply
             await self.send_data('APP_answer_OK')
 
-    def create_device(self, data):
+    async def create_device(self, data):
         """
         Creates a new device in the device dict
         :param data: The data to create the device from
@@ -132,8 +132,7 @@ class Hub:
         dev = create_device_from_data(data)
         d_id = data["data"]["device_ID"]
         self.devices[d_id] = dev
-        self.new_device.set()
-        self.new_device = trio.Event()
+        await self.new_device_send_ch.send(d_id)
         return self.devices[d_id]
 
     async def handle_command(self, data):
@@ -151,7 +150,7 @@ class Hub:
             try:
                 dev = self.devices[d_id]
             except KeyError:
-                dev = self.create_device(data)
+                dev = await self.create_device(data)
 
             await trio.sleep(0)
 
@@ -162,7 +161,7 @@ class Hub:
             try:
                 dev = self.devices[d_id]
             except KeyError:
-                dev = self.create_device(data)
+                dev = await self.create_device(data)
             dev.send_alarm_event()
             logging.debug("ALARM!! Device_id " + str(d_id) + "(" + dev.name + ")")
 

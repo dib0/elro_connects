@@ -91,13 +91,8 @@ class MQTTPublisher:
         Main loop to handle all device events
         :param hub: The hub to listen for devices
         """
-        listening = []
         async with trio.open_nursery() as nursery:
-            while True:
-                await hub.new_device.wait()
-                for device in hub.devices:
-                    if device not in listening:
-                        logging.info(f"New device registered: {hub.devices[device]}")
-                        listening.append(device)
-                        nursery.start_soon(self.device_update_task, hub.devices[device])
-                        nursery.start_soon(self.handle_device_alarm, hub.devices[device])
+            async for device_id in hub.new_device_receive_ch:
+                logging.info(f"New device registered: {hub.devices[device_id]}")
+                nursery.start_soon(self.device_update_task, hub.devices[device_id])
+                nursery.start_soon(self.handle_device_alarm, hub.devices[device_id])
