@@ -27,10 +27,8 @@ class MQTTPublisher:
 
         if base_topic is None:
             self.base_topic = ""
-        elif base_topic.startswith("/"):
-            self.base_topic = base_topic
         else:
-            self.base_topic = f"/{base_topic}"
+            self.base_topic = base_topic
 
     def topic_name(self, device):
         """
