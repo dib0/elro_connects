@@ -98,5 +98,6 @@ class MQTTPublisher:
                 for device in hub.devices:
                     if device not in listening:
                         logging.info(f"New device registered: {hub.devices[device]}")
+                        listening.append(device)
                         nursery.start_soon(self.device_update_task, hub.devices[device])
                         nursery.start_soon(self.handle_device_alarm, hub.devices[device])

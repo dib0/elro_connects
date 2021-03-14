@@ -126,7 +126,7 @@ class Hub:
         """
         Creates a new device in the device dict
         :param data: The data to create the device from
-        :return: The device oobject
+        :return: The device object
         """
         logging.info("Create device.")
         dev = create_device_from_data(data)
