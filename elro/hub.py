@@ -33,6 +33,7 @@ class Hub:
         self.id = device_id
 
         self.devices = {}
+        self.unregistered_names = {}
         self.connected = False
 
         self.msg_id = 0
@@ -47,12 +48,13 @@ class Hub:
         """
         await self.connect()
         await self.sync_scenes(0)
+        await self.get_device_names()
 
         # Main loop, keep updating every 30 seconds. Keeps 'connection' alive in order
         # to receive alarms/events
         while True:
-            await self.sync_devices()
             await trio.sleep(30)  # sleep first to handle the sync scenes and device names
+            await self.sync_devices()
             await self.get_device_names()
 
     async def receiver_task(self):
@@ -131,6 +133,9 @@ class Hub:
         logging.info("Create device.")
         dev = create_device_from_data(data)
         d_id = data["data"]["device_ID"]
+        if self.unregistered_names.get(d_id):
+            dev.name = self.unregistered_names[d_id]
+            del self.unregistered_names[d_id]
         self.devices[d_id] = dev
         await self.new_device_send_ch.send(d_id)
         return self.devices[d_id]
@@ -176,6 +181,7 @@ class Hub:
             try:
                 dev = self.devices[d_id]
             except KeyError:
+                self.unregistered_names[d_id] = name_val
                 return
             await trio.sleep(0)
             dev.name = name_val
