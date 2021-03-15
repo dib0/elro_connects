@@ -93,4 +93,4 @@ class MQTTPublisher:
             async for device_id in hub.new_device_receive_ch:
                 logging.info(f"New device registered: {hub.devices[device_id]}")
                 nursery.start_soon(self.device_update_task, hub.devices[device_id])
-                nursery.start_soon(self.handle_device_alarm, hub.devices[device_id])
+                nursery.start_soon(self.device_alarm_task, hub.devices[device_id])
