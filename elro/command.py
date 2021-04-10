@@ -1,16 +1,10 @@
-class const:
-    DEBUG_SCRIPT = True
-    # Global ELRO Connects variables
-    DEVICE_ID = 'ST_aaaaaaaaaaaa' # ID of the ELRO Connects Hub. This starts with ST_ and then is the (lowercase) macaddress of the WiFi adapter of the Hub
-    CTRL_KEY = '0'  #Seems not to be used for UDP communication
-    APP_ID = '0' #(app uses android_id here) Seems not to be used for UDP communication
+from enum import Enum
 
-    # Hub settings
-    SERVER_IP = 'x.x.x.x' # The local IP-address of the ELRO Connects Hub
-    SERVER_PORT = 1025
 
-    # ELRO Connects send commands
-    # Copied from decompiled android app
+class Command(Enum):
+    """
+    ELRO Connects send commands copied from decompiled android app
+    """
     SWITCH_TIMER = -34
     DELETE_EQUIPMENT_DETAIL = -4
     EQUIPMENT_CONTROL = 1
@@ -45,3 +39,4 @@ class const:
     DEVICE_STATUS_UPDATE = 19
     DEVICE_ALARM_TRIGGER = 25
     SCENE_STATUS_UPDATE = 26
+    DEVICE_NAME_REPLY = 28  #?
