@@ -27,10 +27,8 @@ class MQTTPublisher:
 
         if base_topic is None:
             self.base_topic = ""
-        elif base_topic.startswith("/"):
-            self.base_topic = base_topic
         else:
-            self.base_topic = f"/{base_topic}"
+            self.base_topic = base_topic
 
     def topic_name(self, device):
         """
@@ -91,12 +89,8 @@ class MQTTPublisher:
         Main loop to handle all device events
         :param hub: The hub to listen for devices
         """
-        listening = []
         async with trio.open_nursery() as nursery:
-            while True:
-                await hub.new_device.wait()
-                for device in hub.devices:
-                    if device not in listening:
-                        logging.info(f"New device registered: {hub.devices[device]}")
-                        nursery.start_soon(self.device_update_task, hub.devices[device])
-                        nursery.start_soon(self.handle_device_alarm, hub.devices[device])
+            async for device_id in hub.new_device_receive_ch:
+                logging.info(f"New device registered: {hub.devices[device_id]}")
+                nursery.start_soon(self.device_update_task, hub.devices[device_id])
+                nursery.start_soon(self.device_alarm_task, hub.devices[device_id])
