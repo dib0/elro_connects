@@ -5,8 +5,9 @@ The ERLO connects system allows you to connect fire alarms, heat alarms, CO alar
 
 The ELRO connects hub allows only one 'connection' at a time. So running this will discontinue sending data to the app and vice versa.
 
+Features to expect:
 * MQTT capabilites -- can connect to an MQTT broker and publishes messages on events
-* Real CLI interface with parameters
+* CLI interface with parameters
 * More pythonic implementation
 * No threads, but async with trio
 
