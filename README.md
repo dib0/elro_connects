@@ -1,7 +1,7 @@
 # ELRO Connects
 The ELRO Connects uses a propriety protocol on the local network over UDP. This is the reversed engineered python implementation of the protocol.
 
-The ERLO connects system allows you to connect fire alarms, heat alarms, CO alarms, water alarms and door/window sensors through a hub. The app uses an internet connection, but on the local network it is possible to communicate with the hub through a propriety UDP protocol.
+The ERLO K1 connects SF40GA system allows you to connect fire alarms, heat alarms, CO alarms, water alarms and door/window sensors through a hub. The app uses an internet connection, but on the local network it is possible to communicate with the hub through a propriety UDP protocol.
 
 The ELRO connects hub allows only one 'connection' at a time. So running this will discontinue sending data to the app and vice versa.
 
@@ -45,3 +45,15 @@ There are two message types: regular status update, and alarm. A regular status 
     "battery": 95}
 
 The alarm message only contains the word `alarm`.
+
+## Supported Devices by ERLO K1 connects SF40GA
+### Fire alarms
+* Elro FZ5002R
+### Heat alarms
+* Elro FH3801R
+### CO alarms
+* Elro FC4801R
+### Water alarms
+* Elro FW3801R
+### Window and Door sensors
+* Elro SF40MA11
