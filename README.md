@@ -29,8 +29,17 @@ Simply install via pip
                             The IP of the MQTT broker.
       -b BASE_TOPIC, --base-topic BASE_TOPIC
                             The base topic of the MQTT topic.
-                            
-## MQTT Topics
+
+
+## MQTT
+
+### Broker
+
+The `MQTT_BROKER` uses the [MQTT URL scheme](https://github.com/mqtt/mqtt.github.io/wiki/URI-Scheme).
+
+    {mqtt,ws}[s]://[username][:password]@host.domain[:port]
+
+### Topics
 
 You can set the base topic of all MQTT messages with the `-b` flag. Then this application will publish on
 
