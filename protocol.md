@@ -41,7 +41,7 @@ Calls the connector to check for status updates which responds with a [`DEVICE_S
 
 Example of received command message format
 
-```
+```json
 {"msgId": 2, "action": "devSend", "params": { "devTid": "ST_xxxxxxxxxxxx", "appTid": [], "data": { "cmdId": 19, "device_ID": 65535, "device_name": "STATUES", "device_status": "OVER" }}}
 ```
 
@@ -50,17 +50,17 @@ Each received command message is replied to by `APP_answer_OK` to confirm to the
 #### DEVICE_STATUS_UPDATE
 
 In case there are no device updated this will be
-```
-{'cmdId': 19, 'device_ID': 65535, 'device_name': 'STATUES', 'device_status': 'OVER'}
+```json
+{"cmdId": 19, "device_ID": 65535, "device_name": "STATUES", "device_status": "OVER"}
 ```
 
 otherwise a message containing the device info is received for each changed device
 
-```
-{'cmdId': 19, 'device_ID': 3, 'device_name': '0013', 'device_status': '0464AAFF'}
+```json
+{"cmdId": 19, "device_ID": 3, "device_name": "0013", "device_status": "0464AAFF"}
 ```
 
-Here the `device_name` is actually the [type of device](#device-types). 
+Here the `device_name` is actually the [type of device](#device-types).
 
 The `device_status` is the devices info which can be split up in following pieces.
 
@@ -69,6 +69,10 @@ The `device_status` is the devices info which can be split up in following piece
 | Unknown | Battery as hex value | Device specific status | Unknown |
 
 #### DEVICE_NAME_REPLY
+
+```json
+{"cmdId": 17, "answer_content": "000140404040404040404b69746368656e24"}
+```
 
 After requesting device names using [`GET_DEVICE_NAME`](#get_device_name) this reply will be send for each device. Here the information will be found under `answer_content`. This contains the device id in the first 4 characters and the name encoded as hexadecimal in the rest. Leading whitespace is displayed as `@` and the name is closed with a `$`. After the last name reply is send a final reply is send with `NAME_OVER`.
 
@@ -81,7 +85,16 @@ Example reponse data: `000140404040404040404b69746368656e24`.
 
 #### DEVICE_ALARM_TRIGGER
 
+```json
+{"cmdId": 25, "answer_content": "000BAD00030013046419A551EA"}
+```
+
 Received when a device alarm goes of. The `answer_content` contains the device id.
+
+| 000BAD  |   0003    | 0013046419A551EA |
+|---------|-----------|------------------|
+| Unknown | Device id | Unknown          |
+
 
 #### SCENE_STATUS_UPDATE
 
