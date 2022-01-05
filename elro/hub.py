@@ -145,7 +145,7 @@ class Hub:
         Handles all commands from the K1
         :param data: The data with the commands
         """
-        logging.debug(f"Handle command: {data}")
+        logging.info(f"Handle command: {data}")
         if data["data"]["cmdId"] == Command.DEVICE_STATUS_UPDATE.value:
             logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             if data["data"]["device_name"] == "STATUES":
