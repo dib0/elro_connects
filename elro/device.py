@@ -85,6 +85,7 @@ class Device(ABC):
         """
         Triggers the self.alarm event.
         """
+        self.device_state = 'Alarm'
         self.alarm.set()
         self.alarm = trio.Event()
 

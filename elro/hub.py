@@ -130,7 +130,7 @@ class Hub:
         :param data: The data to create the device from
         :return: The device object
         """
-        logging.info("Create device.")
+        logging.info(f"Create device with data: {data}")
         dev = create_device_from_data(data)
         d_id = data["data"]["device_ID"]
         if self.unregistered_names.get(d_id):
@@ -145,8 +145,9 @@ class Hub:
         Handles all commands from the K1
         :param data: The data with the commands
         """
-        logging.info(f"Handle command: {data}")
+        logging.debug(f"Handle command: {data}")
         if data["data"]["cmdId"] == Command.DEVICE_STATUS_UPDATE.value:
+            logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             if data["data"]["device_name"] == "STATUES":
                 return
 
@@ -162,15 +163,18 @@ class Hub:
             dev.update(data)
 
         elif data["data"]["cmdId"] == Command.DEVICE_ALARM_TRIGGER.value:
+            logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             d_id = int(data["data"]["answer_content"][6:10], 16)
             try:
                 dev = self.devices[d_id]
             except KeyError:
-                dev = await self.create_device(data)
+                #dev = await self.create_device(data)
+                return #device cannot be created from Command.DEVICE_ALARM_TRIGGER
             dev.send_alarm_event()
             logging.debug("ALARM!! Device_id " + str(d_id) + "(" + dev.name + ")")
 
         elif data["data"]["cmdId"] == Command.DEVICE_NAME_REPLY.value:
+            logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             answer = data["data"]["answer_content"]
             if answer == "NAME_OVER":
                 return
