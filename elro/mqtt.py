@@ -39,21 +39,7 @@ class MQTTPublisher:
         The topic name for a given device
         :param device: The device to get the topic name for
         """
-        last_hierarchy = self.device_name(device)
-
-        return f"{self.base_topic}/elro/{last_hierarchy}"
-
-    def device_name(self, device):
-        """
-        The device name for a given device
-        :param device: The device to get the device name for
-        """
-        if device.name == "":
-            device_name = device.id
-        else:
-            device_name = device.name
-
-        return device_name
+        return f"{self.base_topic}/elro/{device.id}"
 
     async def device_alarm_task(self, device):
         """
@@ -71,7 +57,7 @@ class MQTTPublisher:
         await device.alarm.wait()
         async with open_mqttclient(uri=self.broker_host) as client:
             logging.info(f"Publish alarm on '{self.topic_name(device)}':\n"
-                         f"alarm")
+                         f"{device.json.encode('utf-8')}")
             await client.publish(f'{self.topic_name(device)}',
                                  device.json.encode('utf-8'),
                                  QOS_1)
@@ -113,12 +99,12 @@ class MQTTPublisher:
         #https://www.home-assistant.io/docs/mqtt/discovery/
         #https://www.home-assistant.io/integrations/sensor.mqtt/
         async with open_mqttclient(uri=self.broker_host) as client:
-            logging.info(f"Publish discovery on 'homeassistant/sensor/elro_k1/{self.device_name(device)}/config'")
+            logging.info(f"Publish discovery on 'homeassistant/sensor/elro_k1/{device.id}/config'")
             await client.publish(
-                f"homeassistant/sensor/elro_k1/{self.device_name(device)}/config",
+                f"homeassistant/sensor/elro_k1/{device.id}/config",
                 json.dumps(
                 {
-                    "name": f"{self.device_name(device)}",
+                    "name": f"elro_k1_{device.id}",
                     "state_topic": f"{self.topic_name(device)}",
                     "value_template": "{{ value_json.state }}",
                     "json_attributes_topic": f"{self.topic_name(device)}",

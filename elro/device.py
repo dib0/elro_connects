@@ -89,7 +89,7 @@ class Device(ABC):
         self.alarm.set()
         self.alarm = trio.Event()
 
-    def update(self, data):
+    def update(self, data, state="Unknown"):
         """
         Updates this device with the data received from the actual device
         :param data: The data dict received from the actual device
@@ -100,7 +100,7 @@ class Device(ABC):
         batt = int(data["data"]["device_status"][2:4], 16)
         self.battery_level = batt
 
-        self.device_state = "Unknown"
+        self.device_state = state
         self.update_specifics(data)
         self._send_update_event()
 
@@ -125,6 +125,7 @@ class Device(ABC):
         :return: A str containing json.
         """
         return json.dumps({"name": self.name,
+                           "device_name": self.name,
                            "id": self.id,
                            "type": self.device_type,
                            "state": self.device_state,
