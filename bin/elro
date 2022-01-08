@@ -8,9 +8,9 @@ from elro.hub import Hub
 from elro.mqtt import MQTTPublisher
 
 
-async def main(hostname, hub_id, mqtt_broker, base_topic):
+async def main(hostname, hub_id, mqtt_broker, ha_autodiscover, base_topic):
     hub = Hub(hostname, 1025, hub_id)
-    mqtt_publisher = MQTTPublisher(mqtt_broker, base_topic)
+    mqtt_publisher = MQTTPublisher(mqtt_broker, ha_autodiscover, base_topic)
     async with trio.open_nursery() as nursery:
         nursery.start_soon(mqtt_publisher.handle_hub_events, hub, name="hub_events")
         nursery.start_soon(hub.sender_task, name="hub_sender")
@@ -18,16 +18,21 @@ async def main(hostname, hub_id, mqtt_broker, base_topic):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        format='[%(asctime)s] %(levelname)-8s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        level=logging.INFO
+    )
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", "--hostname", help="The hostname or ip of the K1 connector.")
     parser.add_argument("-i", "--id", help="The ID of the K1 connector (format is ST_xxxxxxxxxxxx).")
     parser.add_argument("-m", "--mqtt-broker", help="The IP of the MQTT broker.")
     parser.add_argument("-b", "--base-topic", help="The base topic of the MQTT topic.", default=None)
+    parser.add_argument("-a", "--ha-autodiscover", help="Send the devices automatically to Home Assistant.", action='store_true')
 
     args = parser.parse_args()
 
-    trio.run(main, args.hostname, args.id, args.mqtt_broker, args.base_topic)
+    trio.run(main, args.hostname, args.id, args.mqtt_broker, args.ha_autodiscover, args.base_topic)
 
 
 

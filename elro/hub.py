@@ -102,7 +102,19 @@ class Hub:
         """
         Receives data from the K1
         """
-        data = await self.sock.recv(4096)
+        i = 0
+        while i < 3:
+            try:
+                data = await self.sock.recv(4096)
+                break
+            except Exception as Error:
+                i = i+1
+                if i < 3:
+                    logging.warning(f"Unable to connect to k1, retrying again. Error: {Error}")
+                    await trio.sleep(1)
+                else:
+                    logging.error(f"Unable to connect to k1 with error: {Error}")
+                    exit()
 
         reply = str(data)[2:-1]
         if reply.endswith('\\n'):
@@ -130,7 +142,7 @@ class Hub:
         :param data: The data to create the device from
         :return: The device object
         """
-        logging.info("Create device.")
+        logging.info(f"Create device with data: {data}")
         dev = create_device_from_data(data)
         d_id = data["data"]["device_ID"]
         if self.unregistered_names.get(d_id):
@@ -147,6 +159,7 @@ class Hub:
         """
         logging.info(f"Handle command: {data}")
         if data["data"]["cmdId"] == Command.DEVICE_STATUS_UPDATE.value:
+            logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             if data["data"]["device_name"] == "STATUES":
                 return
 
@@ -162,15 +175,34 @@ class Hub:
             dev.update(data)
 
         elif data["data"]["cmdId"] == Command.DEVICE_ALARM_TRIGGER.value:
+            logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             d_id = int(data["data"]["answer_content"][6:10], 16)
             try:
                 dev = self.devices[d_id]
             except KeyError:
-                dev = await self.create_device(data)
+                if data["data"]["cmdId"] == Command.DEVICE_ALARM_TRIGGER.value:
+                    logging.warning(f"Got device id '{d_id}', but the device is not yet known. Trying to create the device")
+                    d_name = data["data"]["answer_content"][10:14]
+                    d_status = data["data"]["answer_content"][14:22]
+                    data = {
+                        "data": {
+                            "cmdId": f"{Command.DEVICE_STATUS_UPDATE.value}",
+                            "device_ID": d_id,
+                            "device_name": f"{d_name}",
+                            "device_status": f"{d_status}"
+                        }
+                    }
+                    dev = await self.create_device(data)
+                    await trio.sleep(0)
+                    dev.update(data, "Alarm")
+                else:
+                    logging.error(f"Unable to trigger device alarm, device is not yet known and cannot be created: {data}")
+                    return
             dev.send_alarm_event()
             logging.debug("ALARM!! Device_id " + str(d_id) + "(" + dev.name + ")")
 
         elif data["data"]["cmdId"] == Command.DEVICE_NAME_REPLY.value:
+            logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             answer = data["data"]["answer_content"]
             if answer == "NAME_OVER":
                 return
