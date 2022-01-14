@@ -3,9 +3,13 @@ import logging
 import argparse
 
 import trio
+import re
+
+from getmac import get_mac_address
 
 from elro.hub import Hub
 from elro.mqtt import MQTTPublisher
+from elro.validation import ip_address
 
 
 async def main(hostname, hub_id, mqtt_broker, ha_autodiscover, base_topic):
@@ -24,15 +28,27 @@ if __name__ == '__main__':
         level=logging.INFO
     )
     parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--hostname", help="The hostname or ip of the K1 connector.")
-    parser.add_argument("-i", "--id", help="The ID of the K1 connector (format is ST_xxxxxxxxxxxx).")
-    parser.add_argument("-m", "--mqtt-broker", help="The IP of the MQTT broker.")
-    parser.add_argument("-b", "--base-topic", help="The base topic of the MQTT topic.", default=None)
-    parser.add_argument("-a", "--ha-autodiscover", help="Send the devices automatically to Home Assistant.", action='store_true')
+    parser._action_groups.pop()
+    required = parser.add_argument_group('required arguments')
+    optional = parser.add_argument_group('optional arguments')
+    required.add_argument("-k", "--hostname", help="The hostname or ip of the K1 connector.")
+    required.add_argument("-m", "--mqtt-broker", help="The IP of the MQTT broker.")
+    required.add_argument("-b", "--base-topic", help="The base topic of the MQTT topic.", default=None)
+    optional.add_argument("-i", "--id", help="The ID of the K1 connector (format is ST_xxxxxxxxxxxx).", default=None)
+    optional.add_argument("-a", "--ha-autodiscover", help="Send the devices automatically to Home Assistant.", action='store_true')
 
     args = parser.parse_args()
 
-    trio.run(main, args.hostname, args.id, args.mqtt_broker, args.ha_autodiscover, args.base_topic)
+    k1id = args.id
+    if k1id == None:
+        if re.search(ip_address,args.hostname):
+            mac = get_mac_address(ip=f"{args.hostname}")
+        else:
+            mac = get_mac_address(hostname=f"{args.hostname}")
+        k1id = f"ST_{(mac.replace(':',''))}"
+        logging.info(f"Found k1 id '{k1id}' for hostname '{args.hostname}")
+
+    trio.run(main, args.hostname, k1id, args.mqtt_broker, args.ha_autodiscover, args.base_topic)
 
 
 
