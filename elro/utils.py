@@ -1,7 +1,7 @@
 import logging
 import re
 
-from valideer import accepts,Pattern
+from valideer import accepts, Pattern
 
 
 #From the ByteUtil class, needed by CRC_maker
