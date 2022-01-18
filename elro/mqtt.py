@@ -140,7 +140,7 @@ class MQTTPublisher:
                                 pass
                             break
 
-                    if device_index != None:
+                    if device_index is not None:
                         if topic_item.lower() == "device_state":
                             mqtt_message = mqtt_message.lower()
                             if mqtt_message == 'test alarm':
