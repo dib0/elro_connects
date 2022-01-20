@@ -136,8 +136,12 @@ class MQTTPublisher:
                             try:
                                 device_index = int(topic_items[i+1])
                                 topic_item = str(topic_items[i+3])
-                            except:
-                                pass
+                            except KeyError:
+                                logging.error("Please provide the topic as [base_topic]/elro/[device_id]/[topic_name]")
+                            except ValueError:
+                                logging.error("Please provide an integer for the device_index and/or a valid topic name")
+                            except Exception as error:
+                                logging.error(f"Unknown error occured '{error}'")
                             break
 
                     if device_index is not None:
