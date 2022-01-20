@@ -124,3 +124,15 @@ async def test_does_not_crash_on_a_name_reply_on_unregistered_devices(hub):
                      "answer_content": "00014040404040576f686e7a696d6d657224"}}
     result = await hub.handle_command(data)
     assert result is None
+
+async def test_set_device_name_sends_right_command(hub):
+    await hub.set_device_state(3,"17")
+    hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
+                                        b'"ctrlKey":"25","appTid":"0","data":{"cmdId":1,"device_id":3,"device_status":"17000000"}}}',
+                                        ('127.0.0.1', 1025))
+
+async def test_set_device_name_sends_right_command(hub):
+    await hub.set_device_name(3,"Kitchen")
+    hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
+                                        b'"ctrlKey":"25","appTid":"0","data":{"cmdId":5,"device_id":3,"device_name":"40404040404040404b69746368656e2493AE"}}}',
+                                        ('127.0.0.1', 1025))

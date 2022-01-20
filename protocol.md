@@ -20,8 +20,14 @@ Corresponding command ids can be found under [`elro/command.py`](elro/command.py
 
 Example of command message format
 
-```
+```json
 {"msgId": 1, "action": "appSend", "params": {"devTid": "ST_xxxxxxxxxxxx", "ctrlKey": "0", "appTid": "0", "data": {"cmdId": 15, "device_status": ""}}}
+```
+
+When a change is made, the hub will respond with the following json
+
+```json
+{"msgId" : 2, "action" : "devSend","params" : {"devTid" : "ST_xxxxxxxxxxxx","appTid" :  [],"data" : {"cmdId" : 11,"answer_yes_or_no" : 2 }}}
 ```
 
 #### SYN_DEVICE_STATUS
@@ -30,7 +36,22 @@ Example of command message format
 
 #### GET_DEVICE_NAME
 
-Request the name of a device by passing `device_ID`. If this id is `0` then all names are requested. This command will be responded by [`DEVICE_NAME_REPLY`](#device_name_reply).
+#### MODIFY_EQUIPMENT_NAME
+
+To change the name of the device, cmdId 5 can be used with the following json
+
+```json
+{"cmdId":5,"device_ID":1,"device_name":"40404040404040404b69746368656e2493AE"}
+```
+
+To change the the name of the device, leading whitespace is required as `@` and the name is closed with a `$`. The name to use needs to encoded as hexadecimal. The hexadecimal string needs a CRC and that is placed at the end of the device_name. The CRC is 4 characters long.
+
+Example device_name data: `40404040404040404b69746368656e2493AE`.
+
+| Device name                           |
+|---------------------------------------:|
+| 40404040404040404b69746368656e2493AE  |
+|@@@@@@@@Kitchen$[CRC]|
 
 #### GET_ALL_EQUIPMENT_STATUS
 
@@ -64,9 +85,9 @@ Here the `device_name` is actually the [type of device](#device-types).
 
 The `device_status` is the devices info which can be split up in following pieces.
 
-|    04   |          64          |           AA           |    FF   |
-|---------|----------------------|------------------------|---------|
-| Unknown | Battery as hex value | Device specific status | Unknown |
+|    04     |          64            |           AA             |    FF     |
+|:---------:|:----------------------:|:------------------------:|:---------:|
+| Unknown   | Battery as hex value   | Device specific status   | Unknown   |
 
 #### DEVICE_NAME_REPLY
 
@@ -79,9 +100,10 @@ After requesting device names using [`GET_DEVICE_NAME`](#get_device_name) this r
 Example reponse data: `000140404040404040404b69746368656e24`.
 
 |  Id  | Device name                      |
-|------|----------------------------------|
+|------:|----------------------------------:|
 | 0001 | 40404040404040404b69746368656e24 |
 |    1 |                 @@@@@@@@Kitchen$ |
+
 
 #### DEVICE_ALARM_TRIGGER
 
@@ -91,10 +113,11 @@ Example reponse data: `000140404040404040404b69746368656e24`.
 
 Received when a device alarm goes of. The `answer_content` contains the device id.
 
-| 000BAD  |   0003    | 0013046419A551EA |
-|---------|-----------|------------------|
-| Unknown | Device id | Unknown          |
+| 000B    | AD   |   0003    | 0013        | 046419A5      | 51EA    |
+|---------|------|-----------|-------------|---------------|---------|
+| Unknown | Type | Device id | Device type | Device status | Unknown |
 
+The Type can be AC or AD and has to do with how the data is parsed. At this moment only AD is supported.
 
 #### SCENE_STATUS_UPDATE
 
@@ -103,11 +126,11 @@ Received when a device alarm goes of. The `answer_content` contains the device i
 
 Following types are currently known:
 
-| Device type        |  Id  | Implementation |
-|--------------------|------|----------------|
-| CO_ALARM           | 0000 | AlarmSensor    |
-| WATER_ALARM        | 0004 | AlarmSensor    |
-| HEAT_ALARM         | 0003 | AlarmSensor    |
-| FIRE_ALARM         | 0005 | AlarmSensor    |
-| DOOR_WINDOW_SENSOR | 0101 | WindowSensor   |
+| Device type        | Implementation |
+|--------------------|----------------|
+| CO_ALARM           | AlarmSensor    |
+| WATER_ALARM        | AlarmSensor    |
+| HEAT_ALARM         | AlarmSensor    |
+| FIRE_ALARM         | AlarmSensor    |
+| DOOR_WINDOW_SENSOR | WindowSensor   |
 

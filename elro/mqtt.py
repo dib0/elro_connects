@@ -113,12 +113,59 @@ class MQTTPublisher:
                 QOS_1
             )
 
+    async def device_message_task(self, hub):
+        """
+        The main loop for handling messages that will be sent to the device
+        :param device: The device that will get the message
+        """
+        while True:
+            await self.handle_device_messages(hub)
+
+    async def handle_device_messages(self, hub):
+        async with open_mqttclient(uri=self.broker_host) as client:
+            logging.info(f"Subscribing to topic 'f{self.base_topic}/elro/[device_id]]/set/[command_topic]'")
+            async with client.subscription(f"{self.base_topic}/elro/+/set/+", codec="utf8") as subscription:
+                async for msg in subscription:
+                    mqtt_message = msg.data.strip('\"')
+                    logging.info(f"Got message '{mqtt_message}' on topic '{msg.topic}'")
+                    topic_items = msg.topic.split('/')
+                    device_index = None
+                    topic_item = None
+                    for i in range(len(topic_items)): #searching for the device index and the command
+                        if topic_items[i].lower() == 'elro':
+                            try:
+                                device_index = int(topic_items[i+1])
+                                topic_item = str(topic_items[i+3])
+                            except KeyError:
+                                logging.error("Please provide the topic as [base_topic]/elro/[device_id]/[topic_name]")
+                            except ValueError:
+                                logging.error("Please provide an integer for the device_index and/or a valid topic name")
+                            except Exception as error:
+                                logging.error(f"Unknown error occured '{error}'")
+                            break
+
+                    if device_index is not None:
+                        if topic_item.lower() == "device_state":
+                            mqtt_message = mqtt_message.lower()
+                            if mqtt_message == 'test alarm':
+                                await hub.set_device_state(device_index, '17')
+                            elif mqtt_message == 'silence' and device_index == 0:
+                                await hub.set_device_state(device_index, '00')
+                            else:
+                                logging.warning(f"Received incorrect message '{mqtt_message}' and/or topic '{msg.topic}'")
+                        elif topic_item.lower() == "device_name":
+                            await hub.set_device_name(device_index, mqtt_message)
+                    else:
+                        logging.warning(f"Received message on topic '{msg.topic}', but there was no device index")
+
     async def handle_hub_events(self, hub):
         """
         Main loop to handle all device events
         :param hub: The hub to listen for devices
         """
         async with trio.open_nursery() as nursery:
+            logging.info(f"Start listener for incoming mqtt")
+            nursery.start_soon(self.device_message_task, hub)
             async for device_id in hub.new_device_receive_ch:
                 logging.info(f"New device registered: {hub.devices[device_id]}")
                 nursery.start_soon(self.device_update_task, hub.devices[device_id])

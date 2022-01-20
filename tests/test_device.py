@@ -125,4 +125,4 @@ def test_update_alarm_sensor_to_alarm_sets_correct_state(alarm_device, update_da
     alarm_device.device_state = 'leia'
     update_data['data']['device_status'] = '  2ABB  '
     alarm_device.update_specifics(update_data)
-    assert alarm_device.device_state == "Alarm"
+    assert alarm_device.device_state == "Test Alarm"
