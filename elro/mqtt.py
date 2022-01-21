@@ -122,6 +122,10 @@ class MQTTPublisher:
             await self.handle_device_messages(hub)
 
     async def handle_device_messages(self, hub):
+        """
+        The handler for the command topics
+        :param hub: The hub to listen for devices
+        """
         async with open_mqttclient(uri=self.broker_host) as client:
             logging.info(f"Subscribing to topic 'f{self.base_topic}/elro/[device_id]]/set/[command_topic]'")
             async with client.subscription(f"{self.base_topic}/elro/+/set/+", codec="utf8") as subscription:
