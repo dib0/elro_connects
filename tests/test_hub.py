@@ -145,3 +145,27 @@ async def test_sync_device_status_sends_right_command(hub):
     hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
                                         b'"ctrlKey":"25","appTid":"0","data":{"cmdId":29,"device_status":"000e000000006B3E000000006B3E"}}}',
                                         ('127.0.0.1', 1025))
+
+async def test_remove_device_sends_right_command(hub):
+    await hub.remove_device(3, True)
+    hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
+                                        b'"ctrlKey":"25","appTid":"0","data":{"cmdId":4,"device_ID":3}}}',
+                                        ('127.0.0.1', 1025))
+
+async def test_permit_join_device_sends_right_command(hub):
+    await hub.permit_join_device(3, True)
+    hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
+                                        b'"ctrlKey":"25","appTid":"0","data":{"cmdId":2}}}',
+                                        ('127.0.0.1', 1025))
+
+async def test_permit_join_device_disable_sends_right_command(hub):
+    await hub.permit_join_device_disable(3, True)
+    hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
+                                        b'"ctrlKey":"25","appTid":"0","data":{"cmdId":7}}}',
+                                        ('127.0.0.1', 1025))
+
+async def test_replace_device_sends_right_command(hub):
+    await hub.permit_join_device_disable(3, True)
+    hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
+                                        b'"ctrlKey":"25","appTid":"0","data":{"cmdId":3}}}',
+                                        ('127.0.0.1', 1025))

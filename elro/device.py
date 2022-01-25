@@ -46,6 +46,7 @@ class Device(ABC):
         self.id = device_id
         self._name = ""
         self._battery_level = -1
+        self._signal_strength = -1
         self._device_state = ""
         self.device_type = device_type
         self.device_type_name = DeviceType(device_type).name
@@ -91,6 +92,19 @@ class Device(ABC):
         self._battery_level = battery_level
         self._send_update_event()
 
+    @property
+    def signal_strength(self):
+        """
+        The current signal strength of the device from 0 to 4.
+        :return: The signal strength
+        """
+        return self._signal_strength
+
+    @signal_strength.setter
+    def signal_strength(self, signal_strength):
+        self._signal_strength = signal_strength
+        self._send_update_event()
+
     def _send_update_event(self):
         """
         Triggers the self.updated event
@@ -112,6 +126,11 @@ class Device(ABC):
         :param data: The data dict received from the actual device
         """
         self.device_type = data["data"]["device_name"]
+
+        # set signal status
+        sig = int(data["data"]["device_status"][0:2], 16)
+        logging.info(f"signal {sig}")
+        self.signal_strength = sig
 
         # set battery status
         batt = int(data["data"]["device_status"][2:4], 16)
@@ -147,7 +166,8 @@ class Device(ABC):
                            "type": self.device_type,
                            "type_name": self.device_type_name,
                            "state": self.device_state,
-                           "battery": self.battery_level})
+                           "battery": self.battery_level,
+                           "signal": self.signal_strength})
 
 
 class WindowSensor(Device):
@@ -208,19 +228,19 @@ class AlarmSensor(Device):
 
         #FIRE_ALARM specific status
         if device_type == DeviceType.FIRE_ALARM:
-            if state == "12": 
+            if state == "12":
                 state_name = "Fault"
-            elif state == "15": 
+            elif state == "15":
                 state_name = "Silence"
-            elif state == "17": 
+            elif state == "17":
                 state_name = "Test Alarm"
-            elif state == "19": 
+            elif state == "19":
                 state_name = "Fire Alarm"
-            elif state == "1B": 
+            elif state == "1B":
                 state_name = "Silence"
 
         #Generic status
-        if state_name == None:
+        if state_name is None:
             if state == "BB":
                 state_name = "Test Alarm"
             elif state == "55":
@@ -243,7 +263,10 @@ def create_device_from_data(data):
     :param data: The data dict received from the actual device
     :return: A Device object
     """
-    if DeviceType(data["data"]["device_name"]) == DeviceType.DOOR_WINDOW_SENSOR:
+    if data["data"]["device_name"] == "DEL":
+        logging.warning(f"Got device_name 'DEL' for device_id '{(data['data']['device_ID'])}'")
+        return None
+    elif DeviceType(data["data"]["device_name"]) == DeviceType.DOOR_WINDOW_SENSOR:
         return WindowSensor(data["data"]["device_ID"])
     else:
         return AlarmSensor(data["data"]["device_ID"], data["data"]["device_name"])

@@ -97,9 +97,9 @@ Here the `device_name` is actually the [type of device](#device-types).
 
 The `device_status` is the devices info which can be split up in following pieces.
 
-|    04     |          64            |           AA             |    FF     |
-|:---------:|:----------------------:|:------------------------:|:---------:|
-| Unknown   | Battery as hex value   | Device specific status   | Unknown   |
+|    04                         |          64            |           AA             |    FF     |
+|:-----------------------------:|:----------------------:|:------------------------:|:---------:|
+| Signal strength from 0 to 4   | Battery as hex value   | Device specific status   | Unknown   |
 
 #### DEVICE_NAME_REPLY
 
