@@ -136,3 +136,12 @@ async def test_set_device_name_sends_right_command(hub):
     hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
                                         b'"ctrlKey":"25","appTid":"0","data":{"cmdId":5,"device_id":3,"device_name":"40404040404040404b69746368656e2493AE"}}}',
                                         ('127.0.0.1', 1025))
+
+async def test_sync_device_status_sends_right_command(hub):
+    devices = {}
+    devices[3] = "0464AA00"
+    devices[5] = "0464AA00"
+    await hub.sync_device_status(3,"devices")
+    hub.sock.sendto.assert_awaited_with(b'{"msgId":1,"action":"appSend","params":{"devTid":"ST_aaaaaaaaaaaa",'
+                                        b'"ctrlKey":"25","appTid":"0","data":{"cmdId":29,"device_status":"000e000000006B3E000000006B3E"}}}',
+                                        ('127.0.0.1', 1025))

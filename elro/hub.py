@@ -7,7 +7,7 @@ import valideer
 
 from elro.command import Command
 from elro.device import create_device_from_data
-from elro.utils import get_string_from_ascii,get_ascii,crc_maker
+from elro.utils import get_string_from_ascii, get_ascii, crc_maker, get_eq_crc
 from elro.validation import hostname, ip_address
 
 
@@ -34,6 +34,7 @@ class Hub:
 
         self.devices = {}
         self.unregistered_names = {}
+        self.devices_for_sync = {}
         self.connected = False
 
         self.msg_id = 0
@@ -49,6 +50,12 @@ class Hub:
         await self.connect()
         await self.sync_scenes(0)
         await self.get_device_names()
+
+        logging.info("Waiting until all devices are retreived")
+        await trio.sleep(5)
+        if len(self.devices_for_sync) > 0:  # sync devices when there are devices known by name
+            logging.info(f"Devices where replied, syncing those devices")
+            await self.sync_device_status(self.devices_for_sync)
 
         # Main loop, keep updating every 30 seconds. Keeps 'connection' alive in order
         # to receive alarms/events
@@ -73,8 +80,7 @@ class Hub:
             await self.send_data('IOT_KEY?' + self.id)
             await trio.sleep(1)
 
-        msg = self.construct_message('{"cmdId":' + str(Command.SYN_DEVICE_STATUS.value) + ',"device_status":""}')
-        await self.send_data(msg)
+        await self.sync_device_status()
 
     def construct_message(self, data):
         """
@@ -209,6 +215,16 @@ class Hub:
             d_id = int(answer[0:4], 16)
             name_val = get_string_from_ascii(answer[4:])
 
+            # Build a list with known device names by device id
+            try:
+                dev = self.devices_for_sync[d_id]
+            except KeyError:
+                logging.info(f"Unknown name from device id '{d_id}'")
+                self.devices_for_sync[d_id] = "0464AA00"  # Bogus device status
+                return
+            await trio.sleep(0)
+
+            # Set the device name from this reply
             try:
                 dev = self.devices[d_id]
             except KeyError:
@@ -248,7 +264,6 @@ class Hub:
         :param device_id: The id of the device to change the state, 0 for all or the gateway(?)
         :param status: The status to set the device to
         """
-
         if status == "00" and device_id == 0: #only allow the command silence for device id 0
             pass
         else:
@@ -289,5 +304,18 @@ class Hub:
         datacrc = data + crc
         data = '{"cmdId":' + str(Command.MODIFY_EQUIPMENT_NAME.value) + ',"device_ID":' + str(device_id) + ',"device_name":"' + str(datacrc) + '"}'
         run = self.construct_message(data)
-        logging.info(f"Set device '{device_id}' name '{device_name}' with: {run}")
+        logging.info(f"Set device '{device_id}' new name '{device_name}' with: {run}")
         await self.send_data(run)
+
+    async def sync_device_status(self, devices=None):
+        """
+        Sends a sync device status command to the K1.
+        :param devices: An dictionary of devices statuses, where the id of the device is the index of the dict
+        """
+        device_status = ""
+        if devices is not None:
+            device_status = get_eq_crc(devices)
+        msg = self.construct_message('{"cmdId":' + str(Command.SYN_DEVICE_STATUS.value) + ',"device_status":"' + device_status + '"}')
+        logging.info(f"sync device status with '{msg}'")
+
+        await self.send_data(msg)

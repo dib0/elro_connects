@@ -1,5 +1,5 @@
 import logging
-import re
+import collections
 
 from valideer import accepts, Pattern
 
@@ -161,7 +161,6 @@ def crc_maker(msg):
     uchCRCLo = 0xff
 
     while (index<msgLength):
-        a = msg[index]
         charCode = ord(msg[index])
 
         CRCIndex = uchCRCHi ^charCode
@@ -183,3 +182,75 @@ def crc_maker(msg):
         crcHi1 = "0" + crcHi1
 
     return f"{crcHi1.upper()}{crcLo1.upper()}"
+
+def crc_maker_char(msg):
+    """
+    This function is reversed engineered and translated to python
+    based on the ByteUtil class in the ELRO Android app
+
+    :param input: The string to create a CRC for
+    :return: A CRC string
+    """
+
+    CRCHi = 0
+    CRCLo = 0
+    msgLength = int(len(msg)/2)
+    content = []
+    for i in range(msgLength):
+        val = chr(int((msg[0:2]),16))
+        content.append(val)
+        msg = msg[2:]
+
+    index = 0
+    CRCIndex = 0
+    uchCRCHi = 0xff
+    uchCRCLo = 0xff
+
+    while (index<msgLength):
+        charCode = ord(content[index])
+
+        CRCIndex = uchCRCHi ^charCode
+        uchCRCHi = uchCRCLo ^auchCRCHi[CRCIndex]
+        uchCRCLo = auchCRCLo[CRCIndex]
+
+        index  =index+1
+
+    CRCLo = uchCRCHi
+    crcLo = int(CRCLo)
+    crcLo1 = hex(crcLo)[2:]
+    if (len(crcLo1)<2):
+        crcLo1 = "0" + crcLo1
+
+    CRCHi = uchCRCLo
+    crcHi = int(CRCHi)
+    crcHi1 = hex(crcHi)[2:]
+    if (len(crcHi1)<2):
+        crcHi1 = "0" + crcHi1
+
+    return f"{crcHi1.upper()}{crcLo1.upper()}"
+
+def get_eq_crc(devices):
+    """
+    Builds a CRC string based on device id and device status. This function is reverse engineered
+    and translated to python. It is based on the CoderUtils class in the elro app
+    :param devices: An dictionary of devices statuses, where the id of the device is the index of the dict
+    """
+    sorted_devices = collections.OrderedDict(sorted(devices.items()))
+    list_length = int(list(sorted_devices.keys())[-1])
+
+    status_crc = ""
+    for i in range(list_length+1):
+        if (i+1) in sorted_devices:
+            status_crc += crc_maker_char(sorted_devices[i+1])
+        elif i < (list_length):
+            status_crc += "0000"
+
+    num = ""
+    list_length_for_hex = hex((list_length*2+2))[2:]
+    if len(list_length_for_hex) < 4:
+        i = 4 - len(list_length_for_hex)
+        num = list_length_for_hex.rjust(i + len(list_length_for_hex), '0')
+    else:
+        num = list_length_for_hex
+
+    return (num + status_crc)

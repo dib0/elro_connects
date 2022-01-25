@@ -32,6 +32,18 @@ When a change is made, the hub will respond with the following json
 
 #### SYN_DEVICE_STATUS
 
+The sync device status command can synchronize all devices known by the client. For this command to work the device state needs to be known in this format `0464AACD`, see [`DEVICE_STATUS_UPDATE`](#DEVICE_STATUS_UPDATE). Example of the message format
+
+```json
+{"msgId":1,"action":"appSend","params":{"devTid":"ST_xxxxxxxxxxxx","ctrlKey":"0","appTid":"0","data":{"cmdId":29,"device_status":"000e00000000xxxx00000000xxxx"}}}
+```
+
+The `0000` represent a device that does not exist and is used as whitespace. If a device is known, a CRC needs to be calculated over the device state.
+
+|000e|0000|0000|xxxx|0000|0000|xxxx|
+|----|----|----|----|----|----|----|
+|ID of the last device| | |CRCMakerChar(devicestate)| | |CRCMakerChar(devicestate)|
+
 #### SYN_SCENE
 
 #### GET_DEVICE_NAME
@@ -115,9 +127,9 @@ Received when a device alarm goes of. The `answer_content` contains the device i
 
 | 000B    | AD   |   0003    | 0013        | 046419A5      | 51EA    |
 |---------|------|-----------|-------------|---------------|---------|
-| Unknown | Type | Device id | Device type | Device status | Unknown |
+| Unknown | Type | Device id | Device type | Device status | CRC     |
 
-The Type can be AC or AD and has to do with how the data is parsed. At this moment only AD is supported.
+The Type can be AC or AD and has to do with how the data is parsed. At this moment only AD is supported. The CRC is the same as used by [MODIFY_EQUIPMENT_NAME](#MODIFY_EQUIPMENT_NAME) except the heximal representation of the values are reversed. That algorithm generates EA51 over the payload (000BAD00030013046419A5), and here 51EA is used. EA is crcHi (high?) and 51 is crcLo (low?).
 
 #### SCENE_STATUS_UPDATE
 
