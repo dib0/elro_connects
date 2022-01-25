@@ -53,7 +53,7 @@ class Hub:
 
         logging.info("Waiting until all devices are retreived")
         await trio.sleep(5)
-        if len(self.devices_for_sync) > 0: #sync devices when there are devices known by name
+        if len(self.devices_for_sync) > 0:  # sync devices when there are devices known by name
             logging.info(f"Devices where replied, syncing those devices")
             await self.sync_device_status(self.devices_for_sync)
 
@@ -215,16 +215,16 @@ class Hub:
             d_id = int(answer[0:4], 16)
             name_val = get_string_from_ascii(answer[4:])
 
-            #Build a list with known device names by device id
+            # Build a list with known device names by device id
             try:
                 dev = self.devices_for_sync[d_id]
             except KeyError:
                 logging.info(f"Unknown name from device id '{d_id}'")
-                self.devices_for_sync[d_id] = "0464AA00" #Bogus device status
+                self.devices_for_sync[d_id] = "0464AA00"  # Bogus device status
                 return
             await trio.sleep(0)
 
-            #Set the device name from this reply
+            # Set the device name from this reply
             try:
                 dev = self.devices[d_id]
             except KeyError:
