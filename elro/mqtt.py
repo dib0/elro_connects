@@ -21,7 +21,7 @@ class MQTTPublisher:
         :param broker_host: The MQTT broker host or ip
         :param ha_autodiscover: If true, new devices will be automatically discovered by Home Assistant
         :param base_topic: The base topic to publish under, i.e., the publisher publishes messages under
-                            <base topic>/elro/<device name or id>
+                           <base topic>/elro/<device name or id>
         """
         self.broker_host = broker_host
         if not self.broker_host.startswith("mqtt://"):
