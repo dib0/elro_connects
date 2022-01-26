@@ -70,6 +70,8 @@ The following message will be available on the topic above as soon as the device
 
 When the device has an alarm the payload is the same as above, but the state is set to `Alarm` or `Test Alarm`.
 
+The signal has a scale from 0 to 4, where 4 is the best strength.
+
 To initiate an action through MQTT, use the following topic
 
     [base_topic]/elro/[device_id]/set
