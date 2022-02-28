@@ -17,6 +17,7 @@ class Hub:
     """
     APP_ID = '0'
     CTRL_KEY = '0'
+    BIND_KEY = '0'
 
     @accepts(ip=valideer.Pattern(f"^(mqtt://)?({ip_address})|({hostname})$"),
              port="integer",
@@ -131,6 +132,13 @@ class Hub:
         logging.info('Received data: ' + reply)
 
         if f"NAME:{self.id}" in reply:
+            for item in reply.split('\\n'):
+                if f"KEY" in item:
+                    Hub.CTRL_KEY = item.split(':')[1]
+                    logging.info(f"Got ctrlKey '{Hub.CTRL_KEY}'")
+                if f"BIND" in item:
+                    Hub.BIND_KEY = item.split(':')[1]
+                    logging.info(f"Got bindKey '{Hub.BIND_KEY}'")
             self.connected = True
 
         if reply.startswith('{') and reply != "{ST_answer_OK}":
@@ -142,21 +150,28 @@ class Hub:
             # Send reply
             await self.send_data('APP_answer_OK')
 
-    async def create_device(self, data):
+    async def process_device(self, data):
         """
-        Creates a new device in the device dict
-        :param data: The data to create the device from
+        Processes device, it will be added or removed accordingly
+        :param data: The data of the device to process
         :return: The device object
         """
-        logging.info(f"Create device with data: {data}")
-        dev = create_device_from_data(data)
+        logging.info(f"Process device with data: {data}")
         d_id = data["data"]["device_ID"]
-        if self.unregistered_names.get(d_id):
-            dev.name = self.unregistered_names[d_id]
-            del self.unregistered_names[d_id]
-        self.devices[d_id] = dev
-        await self.new_device_send_ch.send(d_id)
-        return self.devices[d_id]
+        if data["data"]["device_name"] == 'DEL':
+            self.remove_device(data, False)
+            return None
+        else:
+            dev = create_device_from_data(data)
+            if dev is None:
+                return None
+
+            if self.unregistered_names.get(d_id):
+                dev.name = self.unregistered_names[d_id]
+                del self.unregistered_names[d_id]
+            self.devices[d_id] = dev
+            await self.new_device_send_ch.send(d_id)
+            return self.devices[d_id]
 
     async def handle_command(self, data):
         """
@@ -174,18 +189,17 @@ class Hub:
             try:
                 dev = self.devices[d_id]
             except KeyError:
-                dev = await self.create_device(data)
-
+                dev = await self.process_device(data)
             await trio.sleep(0)
-
-            dev.update(data)
+            if dev is not None:
+                dev.update(data)
 
         elif data["data"]["cmdId"] == Command.DEVICE_ALARM_TRIGGER.value:
             logging.debug(f"Processing cmdId: {data['data']['cmdId']}")
             d_id = int(data["data"]["answer_content"][6:10], 16)
             d_name = data["data"]["answer_content"][10:14]
             d_status = data["data"]["answer_content"][14:22]
-            #Create the data object that is understood by all functions used below
+            # Create the data object that is understood by all functions used below
             data = {
                 "data": {
                     "cmdId": f"{Command.DEVICE_STATUS_UPDATE.value}",
@@ -199,9 +213,10 @@ class Hub:
                 dev = self.devices[d_id]
             except KeyError:
                 logging.warning(f"Got device id '{d_id}', but the device is not yet known. Trying to create the device")
-                dev = await self.create_device(data)
+                dev = await self.process_device(data)
                 await trio.sleep(0)
-                dev.update(data)
+                if dev is not None:
+                    dev.update(data)
 
             dev.send_alarm_event(data)
             logging.debug("ALARM!! Device_id " + str(d_id) + "(" + dev.name + ")")
@@ -264,7 +279,7 @@ class Hub:
         :param device_id: The id of the device to change the state, 0 for all or the gateway(?)
         :param status: The status to set the device to
         """
-        if status == "00" and device_id == 0: #only allow the command silence for device id 0
+        if status == "00" and device_id == 0:  # only allow the command silence for device id 0
             pass
         else:
             try:
@@ -319,3 +334,82 @@ class Hub:
         logging.info(f"sync device status with '{msg}'")
 
         await self.send_data(msg)
+
+    async def remove_device(self, device_id, from_hub=False):
+        """
+        Remove the device from the hub. This functions handles the delete from the hub, or the deleted devices are communicated by the hub
+        :param device_id: The id of the device that will be removed
+        :param from_hub: Also send the delete command to the hub
+        """
+        logging.info(f"Delete device '{device_id}'")
+        # Delete device
+        try:
+            dev = self.devices[device_id]
+            del self.devices[device_id]
+        except KeyError:
+            pass
+        except Exception as error:
+            logging.error(f"Unhandeld error when deleting device  '{device_id}': {error}")
+        
+        # Delete device from devices_for_sync
+        try:
+            dev = self.devices_for_sync[device_id]
+            del self.devices_for_sync[device_id]
+        except KeyError:
+            pass
+        except Exception as error:
+            logging.error(f"Unhandeld error when deleting device from the sync  '{device_id}': {error}")
+
+        # Delete device from devices_for_sync
+        try:
+            dev = self.unregistered_names[device_id]
+            del self.unregistered_names[device_id]
+        except KeyError:
+            pass
+        except Exception as error:
+            logging.error(f"Unhandeld error when deleting device from unregistered names  '{device_id}': {error}")
+
+        if from_hub:
+            data = '{"cmdId":' + str(Command.DELETE_EQUIPMENT.value) + ',"device_ID":' + str(device_id) + '}'
+            run = self.construct_message(data)
+            logging.info(f"Delete device '{device_id}' on the hub with: {run}")
+            await self.send_data(run)
+
+    async def permit_join_device(self):
+        """
+        Enable the hub to add new devices
+        """
+        data = '{"cmdId":' + str(Command.INCREACE_EQUIPMENT.value) + '}'
+        run = self.construct_message(data)
+        logging.info(f"Permit join device with: {run}")
+        await self.send_data(run)
+
+    async def permit_join_device_disable(self):
+        """
+        Disable the hub to join new devices
+        """
+        data = '{"cmdId":' + str(Command.CANCEL_INCREACE_EQUIPMENT.value) + '}'
+        run = self.construct_message(data)
+        logging.info(f"Disable join device with: {run}")
+        await self.send_data(run)
+
+    async def replace_device(self, device_id):
+        """
+        Replace the specified device
+        :param device_id: The id of the device that will be replaced
+        """
+        logging.info(f"Replace device '{device_id}'")
+        # Delete device
+        try:
+            dev = self.devices[device_id]
+            del self.devices[device_id]
+        except KeyError:
+            logging.warning(f"Cannot replace device. Device id '{device_id}' does not exist.")
+            return
+        except Exception as error:
+            logging.error(f"Unhandeld error when replacing device  '{device_id}': {error}")
+
+        data = '{"cmdId":' + str(Command.REPLACE_EQUIPMENT.value) + '}'
+        run = self.construct_message(data)
+        logging.info(f"Permit join device with: {run}")
+        await self.send_data(run)

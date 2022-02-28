@@ -4,7 +4,7 @@ import collections
 from valideer import accepts, Pattern
 
 
-#From the ByteUtil class, needed by CRC_maker
+# From the ByteUtil class, needed by CRC_maker
 auchCRCHi = [
         0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0,
         0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
@@ -32,7 +32,7 @@ auchCRCHi = [
         0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
         0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0,
         0x80, 0x41, 0x00, 0xC1, 0x81, 0x40]
-#From the ByteUtil class, needed by CRC_maker
+# From the ByteUtil class, needed by CRC_maker
 auchCRCLo = [
         0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2, 0xC6, 0x06,
         0x07, 0xC7, 0x05, 0xC5, 0xC4, 0x04, 0xCC, 0x0C, 0x0D, 0xCD,
@@ -81,7 +81,7 @@ def get_string_from_ascii(input):
 
     return name
 
-@accepts(input=Pattern("^[_\-a-zA-Z0-9 ]*$")) #Not fully supporting a wide range of characters due to partial implementation
+@accepts(input=Pattern("^[_\-a-zA-Z0-9 ]*$"))  # Not fully supporting a wide range of characters due to partial implementation
 def get_ascii(input):
     """
     This function is partially reversed engineered and translated to python
@@ -133,7 +133,7 @@ def get_ascii(input):
         }
         return buf;
     }
-    
+
     public static char combine2bytesToU16(byte high, byte low) {
         char highU8 = convertByte2Uint8(high);
         char lowU8 = convertByte2Uint8(low);

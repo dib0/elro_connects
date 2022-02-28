@@ -88,7 +88,7 @@ class MQTTPublisher:
         The main handler for Home Assistant discovery
         :param device: The device to handle discover event for.
         """
-        if self.ha_autodiscover == True and device.device_type != "DEL":
+        if self.ha_autodiscover is True and device.device_type != "DEL":
             await self.handle_device_discovery(device)
 
     async def handle_device_discovery(self, device):
@@ -96,8 +96,8 @@ class MQTTPublisher:
         Add new devices automatically in Home Assistant
         :param device: The device that will be added to Home Assistant
         """
-        #https://www.home-assistant.io/docs/mqtt/discovery/
-        #https://www.home-assistant.io/integrations/sensor.mqtt/
+        # https://www.home-assistant.io/docs/mqtt/discovery/
+        # https://www.home-assistant.io/integrations/sensor.mqtt/
         async with open_mqttclient(uri=self.broker_host) as client:
             logging.info(f"Publish discovery on 'homeassistant/sensor/elro_k1/{device.id}/config'")
             await client.publish(
@@ -127,38 +127,56 @@ class MQTTPublisher:
         :param hub: The hub to listen for devices
         """
         async with open_mqttclient(uri=self.broker_host) as client:
-            logging.info(f"Subscribing to topic 'f{self.base_topic}/elro/[device_id]]/set/[command_topic]'")
-            async with client.subscription(f"{self.base_topic}/elro/+/set/+", codec="utf8") as subscription:
+            logging.info(f"Subscribing to topic 'f{self.base_topic}/elro/[device_id]/set'")
+            async with client.subscription(f"{self.base_topic}/elro/+/set", codec="utf8") as subscription:
                 async for msg in subscription:
                     mqtt_message = msg.data.strip('\"')
                     logging.info(f"Got message '{mqtt_message}' on topic '{msg.topic}'")
                     topic_items = msg.topic.split('/')
                     device_index = None
-                    topic_item = None
-                    for i in range(len(topic_items)): #searching for the device index and the command
+                    for i in range(len(topic_items)):  # searching for the device index and the command
                         if topic_items[i].lower() == 'elro':
                             try:
                                 device_index = int(topic_items[i+1])
-                                topic_item = str(topic_items[i+3])
                             except KeyError:
-                                logging.error("Please provide the topic as [base_topic]/elro/[device_id]/[topic_name]")
+                                logging.error("Please provide the topic as [base_topic]/elro/[device_id]/set")
                             except ValueError:
-                                logging.error("Please provide an integer for the device_index and/or a valid topic name")
+                                logging.error("Please provide an integer for the device_index")
                             except Exception as error:
                                 logging.error(f"Unknown error occured '{error}'")
                             break
 
                     if device_index is not None:
-                        if topic_item.lower() == "device_state":
-                            mqtt_message = mqtt_message.lower()
-                            if mqtt_message == 'test alarm':
-                                await hub.set_device_state(device_index, '17')
-                            elif mqtt_message == 'silence' and device_index == 0:
-                                await hub.set_device_state(device_index, '00')
+                        mqtt_message_json = None
+                        try:
+                            mqtt_message_json = json.loads(mqtt_message)
+                        except Exception as error:
+                            logging.error(f"Unable to parse MQTT JSON '{mqtt_message}' with error: '{error}'")
+                        if mqtt_message_json is not None:
+                            if "name" in mqtt_message_json and device_index != 0:
+                                await hub.set_device_name(device_index, mqtt_message_json["name"])
+                            elif "state" in mqtt_message_json:
+                                if mqtt_message_json["test alarm"].lower() == 'test alarm':
+                                    await hub.set_device_state(device_index, '17')
+                                elif mqtt_message_json["test alarm"].lower() == 'silence' and device_index == 0:
+                                    await hub.set_device_state(device_index, '00')
+                                else:
+                                    logging.warning(f"Unable to set state with incorrect message '{mqtt_message}' and/or topic '{msg.topic}'")
+                            elif "permit_join" in mqtt_message_json and device_index == 0:
+                                if mqtt_message_json["permit_join"] is True:
+                                    await hub.permit_join_device()
+                                elif mqtt_message_json["permit_join"] is False:
+                                    await hub.permit_join_device_cancel()
+                            elif "remove" in mqtt_message_json and device_index != 0:
+                                if mqtt_message_json["remove"] is True:
+                                    await hub.remove_device(device_index, True)
+                            elif "replace" in mqtt_message_json and device_index != 0:
+                                if mqtt_message_json["replace"] is True:
+                                    await hub.replace_device(device_index)
+                                elif mqtt_message_json["replace"] is False:
+                                    await hub.permit_join_device_cancel()
                             else:
-                                logging.warning(f"Received incorrect message '{mqtt_message}' and/or topic '{msg.topic}'")
-                        elif topic_item.lower() == "device_name":
-                            await hub.set_device_name(device_index, mqtt_message)
+                                logging.warning(f"No action belongs to the MQTT message '{mqtt_message}' and/or topic '{msg.topic}'")
                     else:
                         logging.warning(f"Received message on topic '{msg.topic}', but there was no device index")
 

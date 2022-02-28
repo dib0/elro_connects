@@ -53,7 +53,7 @@ You can set the base topic of all MQTT messages with the `-b` flag. Then this ap
 
     [base_topic]/elro/[device_id]
     
-There are two message types: regular status update, and alarm. A regular status update contains a JSON message with the following format. This will probably change in a future release to five different messages.
+The following message will be available on the topic above as soon as the devices are synced.
 
 ```JSON
 {
@@ -63,29 +63,86 @@ There are two message types: regular status update, and alarm. A regular status 
     "type": "0013", 
     "type_name": "FIRE_ALARM", 
     "state": "Normal", 
-    "battery": 95
+    "battery": 95, 
+    "signal": 4
 }
 ```
 
 When the device has an alarm the payload is the same as above, but the state is set to `Alarm` or `Test Alarm`.
 
+The signal has a scale from 0 to 4, where 4 is the best strength.
+
 To initiate an action through MQTT, use the following topic
 
-    [base_topic]/elro/[device_id]/set/[action_topic]
+    [base_topic]/elro/[device_id]/set
 
-Use the following values on [action_topic]
+The following actions can be set.
 
-#### device_status
+#### Permit join
 
-The device_status is capable of handling 2 values:
-* "test alarm" - Enable a test alarm
-* "silence" - silence the test alarm
+Enable or disable the hub to allow devices to join. This payload can only be sent to [device_id] 0. Send false as the value for "permit_join" when the device will not be joined.
 
-If silence is used to silence an alarm, you can only send this to [device_id] 0, and it will only silence the hub.
+```json
+{
+  "permit_join": true|false
+}
+```
 
-#### device_name
+#### Remove
 
-Provide a new name to rename your device to. This can be a maximum of 15 characters and consist of the following characters (the , is not allowed): a-z,A-Z, 0-9, ,-,_
+Remove a device from the network. The [device_id] is the device that will be removed. Use this payload
+
+```json
+{
+  "remove": true
+}
+```
+
+#### Replace
+
+Replace a device from the network. The [device_id] is the device that will be replaced. When the device will not be replaced, cancel the replacement by using false as the value for "replace". Use this payload
+
+```json
+{
+  "replace": true|false
+}
+```
+
+#### State
+
+Change the state of the device
+
+##### Test alarm
+
+Use this payload
+
+```json
+{
+  "state": "test alarm"
+}
+```
+
+##### Silence
+
+To silence an alarm, a payload can only be sent to [device_id] 0, and it will only silence the hub. Use this payload
+
+```json
+{
+  "state": "silence"
+}
+```
+
+#### Name
+
+Change the name of your device. This can be a maximum of 15 characters and consist of the following characters (the , is not allowed): a-z,A-Z, 0-9, ,-,_
+
+Use this payload
+
+```json
+{
+  "name": "Kitchen"
+}
+```
 
 ## Supported Devices by ERLO K1 connects SF40GA
 ### Fire alarms
