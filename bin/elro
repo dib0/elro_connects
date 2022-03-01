@@ -45,8 +45,12 @@ if __name__ == '__main__':
             mac = get_mac_address(ip=f"{args.hostname}")
         else:
             mac = get_mac_address(hostname=f"{args.hostname}")
-        k1id = f"ST_{(mac.replace(':',''))}"
-        logging.info(f"Found k1 id '{k1id}' for hostname '{args.hostname}")
+
+        if mac == None:
+            logging.error(f"Could not determine k1 id for '{args.hostname}'")
+        else:
+            k1id = f"ST_{(mac.replace(':',''))}"
+            logging.info(f"Found k1 id '{k1id}' for hostname '{args.hostname}")
 
     trio.run(main, args.hostname, k1id, args.mqtt_broker, args.ha_autodiscover, args.base_topic)
 
