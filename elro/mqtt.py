@@ -157,9 +157,9 @@ class MQTTPublisher:
                             if "name" in mqtt_message_json and device_index != 0:
                                 await hub.set_device_name(device_index, mqtt_message_json["name"])
                             elif "state" in mqtt_message_json:
-                                if mqtt_message_json["test alarm"].lower() == 'test alarm':
+                                if mqtt_message_json["state"].lower() == 'test alarm':
                                     await hub.set_device_state(device_index, '17')
-                                elif mqtt_message_json["test alarm"].lower() == 'silence' and device_index == 0:
+                                elif mqtt_message_json["state"].lower() == 'silence' and device_index == 0:
                                     await hub.set_device_state(device_index, '00')
                                 else:
                                     logging.warning(f"Unable to set state with incorrect message '{mqtt_message}' and/or topic '{msg.topic}'")
