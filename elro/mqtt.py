@@ -110,7 +110,8 @@ class MQTTPublisher:
                     "json_attributes_topic": f"{self.topic_name(device)}",
                     "unique_id": f"elro_k1_device_{device.id}"
                 }).encode('utf8'),
-                QOS_1
+                QOS_1,
+                retain=True
             )
 
     async def device_message_task(self, hub):
