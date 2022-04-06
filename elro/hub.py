@@ -159,7 +159,7 @@ class Hub:
         logging.info(f"Process device with data: {data}")
         d_id = data["data"]["device_ID"]
         if data["data"]["device_name"] == 'DEL':
-            self.remove_device(data, False)
+            await self.remove_device(data, False)
             return None
         else:
             dev = create_device_from_data(data)

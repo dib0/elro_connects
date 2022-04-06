@@ -167,7 +167,7 @@ class MQTTPublisher:
                                 if mqtt_message_json["permit_join"] is True:
                                     await hub.permit_join_device()
                                 elif mqtt_message_json["permit_join"] is False:
-                                    await hub.permit_join_device_cancel()
+                                    await hub.permit_join_device_disable()
                             elif "remove" in mqtt_message_json and device_index != 0:
                                 if mqtt_message_json["remove"] is True:
                                     await hub.remove_device(device_index, True)
@@ -175,7 +175,7 @@ class MQTTPublisher:
                                 if mqtt_message_json["replace"] is True:
                                     await hub.replace_device(device_index)
                                 elif mqtt_message_json["replace"] is False:
-                                    await hub.permit_join_device_cancel()
+                                    await hub.permit_join_device_disable()
                             else:
                                 logging.warning(f"No action belongs to the MQTT message '{mqtt_message}' and/or topic '{msg.topic}'")
                     else:

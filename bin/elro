@@ -41,16 +41,18 @@ if __name__ == '__main__':
 
     k1id = args.id
     if k1id == None:
+        mac = None
         if re.search(ip_address,args.hostname):
             mac = get_mac_address(ip=f"{args.hostname}")
         else:
             mac = get_mac_address(hostname=f"{args.hostname}")
 
-        if mac == None:
-            logging.error(f"Could not determine k1 id for '{args.hostname}'")
-        else:
+        if mac is not None:
             k1id = f"ST_{(mac.replace(':',''))}"
-            logging.info(f"Found k1 id '{k1id}' for hostname '{args.hostname}")
+            logging.info(f"Found k1 id '{k1id}' for hostname '{args.hostname}'")
+        else:
+            logging.error(f"Unable to determine k1 id '{k1id}' for hostname '{args.hostname}'. If the error persists, please provide --id as parameter")
+            quit()
 
     trio.run(main, args.hostname, k1id, args.mqtt_broker, args.ha_autodiscover, args.base_topic)
 
