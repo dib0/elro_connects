@@ -2,8 +2,7 @@ import logging
 import json
 
 import trio
-from valideer import accepts
-import valideer
+import re
 
 from elro.command import Command
 from elro.device import create_device_from_data
@@ -19,9 +18,6 @@ class Hub:
     CTRL_KEY = '0'
     BIND_KEY = '0'
 
-    @accepts(ip=valideer.Pattern(f"^(mqtt://)?({ip_address})|({hostname})$"),
-             port="integer",
-             device_id=valideer.Pattern("^ST_([0-9A-Fa-f]{12})$"))
     def __init__(self, ip, port, device_id):
         """
         Constructor
@@ -29,6 +25,13 @@ class Hub:
         :param port: The port of the K1 (usually 1025)
         :param device_id: The device id of the K1 (starts with ST_ followed by its MAC address without colons)
         """
+        if (re.search(f"^({ip_address})|({hostname})$", ip) is None):
+            raise TypeError(f"Invalid ip ({ip})")
+        if (not isinstance(port, int)):
+            raise TypeError(f"Port should be an integer ({port})")
+        if (re.search("^ST_([0-9A-Fa-f]{12})$", device_id) is None):
+            raise TypeError(f"Invalid device id ({device_id})")
+
         self.ip = ip
         self.port = port
         self.id = device_id
