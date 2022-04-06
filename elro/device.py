@@ -67,9 +67,8 @@ class Device(ABC):
         self._battery_level = -1
         self._signal_strength = -1
         self._device_state = ""
-        self.device_type = DeviceType(device_type_id)
         self.device_type_id = device_type_id
-        self.device_type_name = self.device_type.name
+        self.device_type = DeviceType(self.device_type_id)
         self.updated = trio.Event()
         self.alarm = trio.Event()
 
@@ -146,6 +145,7 @@ class Device(ABC):
         :param data: The data dict received from the actual device
         """
         self.device_type_id = data["data"]["device_name"]
+        self.device_type = DeviceType(self.device_type_id)
 
         # set signal status
         sig = int(data["data"]["device_status"][0:2], 16)
@@ -184,7 +184,7 @@ class Device(ABC):
                            "device_name": self.name,
                            "id": self.id,
                            "type": self.device_type_id,
-                           "type_name": self.device_type_name,
+                           "type_name": self.device_type.name,
                            "state": self.device_state,
                            "battery": self.battery_level,
                            "signal": self.signal_strength})
