@@ -1,8 +1,6 @@
 import logging
 import collections
-
-from valideer import accepts, Pattern
-
+import re
 
 # From the ByteUtil class, needed by CRC_maker
 auchCRCHi = [
@@ -81,7 +79,6 @@ def get_string_from_ascii(input):
 
     return name
 
-@accepts(input=Pattern("^[_\-a-zA-Z0-9 ]*$"))  # Not fully supporting a wide range of characters due to partial implementation
 def get_ascii(input):
     """
     This function is partially reversed engineered and translated to python
@@ -90,6 +87,9 @@ def get_ascii(input):
     :param input: A string
     :return: A hex string
     """
+    if (re.search("^[_\-a-zA-Z0-9 ]*$", input) is None):
+        raise TypeError("Not fully supporting a wide range of characters due to partial implementation")
+
     countf = 0
 
     try:

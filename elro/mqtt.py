@@ -1,10 +1,10 @@
 import logging
 import json
+import re
 
 import trio
 from distmqtt.client import open_mqttclient
 from distmqtt.mqtt.constants import QOS_1
-from valideer import accepts, Pattern
 
 from elro.validation import ip_address, hostname
 
@@ -13,8 +13,6 @@ class MQTTPublisher:
     """
     A MQTTPublisher listens to all hub events and publishes messages to an MQTT broker accordingly
     """
-    @accepts(broker_host=Pattern(f"({ip_address}|{hostname})"),
-             base_topic=Pattern("^[/_\\-a-zA-Z0-9]*$"))
     def __init__(self, broker_host, ha_autodiscover, base_topic=None):
         """
         Constructor
@@ -23,6 +21,12 @@ class MQTTPublisher:
         :param base_topic: The base topic to publish under, i.e., the publisher publishes messages under
                            <base topic>/elro/<device name or id>
         """
+        if (re.search(f"({ip_address}|{hostname})", broker_host) is None):
+            raise TypeError(f"Invalid broker host ({broker_host})")
+
+        if (re.search("^[/_\\-a-zA-Z0-9]*$", base_topic) is None):
+            raise TypeError(f"Invalid base topic ({base_topic})")
+
         self.broker_host = broker_host
         if not self.broker_host.startswith("mqtt://"):
             self.broker_host = f"mqtt://{self.broker_host}"
@@ -110,8 +114,7 @@ class MQTTPublisher:
                     "json_attributes_topic": f"{self.topic_name(device)}",
                     "unique_id": f"elro_k1_device_{device.id}"
                 }).encode('utf8'),
-                QOS_1,
-                retain=True
+                QOS_1
             )
 
     async def device_message_task(self, hub):
